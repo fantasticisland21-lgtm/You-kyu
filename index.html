@@ -253,7 +253,7 @@ function toast(msg) {
 }
 
 function start() {
-  const app = initializeApp(FIREBASE_CFG);
+  const app = initializeApp(FIREBASE_CFG, "yukyu");
   auth = getAuth(app); db = getFirestore(app);
   onAuthStateChanged(auth, u => {
     unsub.forEach(f => f()); unsub = [];
@@ -291,6 +291,7 @@ function renderFatal(e) {
 function renderSetup() {
   $app.innerHTML = `<div class="title"><span class="ico">👋</span>はじめに</div>
     <p class="note">入社日から、毎年の付与日を自動で計算します。</p>
+    <p class="note">ログイン中: ${esc(user.email || "")}<br>いつものアカウントと違うときは、下のボタンでログアウトしてください。</p>
     <label>入社日</label><input id="hd" type="date">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="30">
     <label>1日の所定労働時間(時間単位の計算用)</label><input id="hp" type="number" min="1" max="24" step="0.5" value="8">
@@ -386,6 +387,7 @@ function grantsHtml(c) {
 
 function settingsHtml(c, hpd) {
   return `<div class="title"><span class="ico">⚙️</span>設定</div>
+    <div class="note">ログイン中: ${esc(user.email || "")}</div>
     <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="${annualDays(settings)}">
     <label>1日の所定労働時間</label><input id="hp" type="number" min="1" max="24" step="0.5" value="${hpd}">
