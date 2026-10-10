@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="有給管理">
+<meta name="theme-color" content="#0f766e">
+<title>有給管理</title>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--text:#1c2b27;--sub:#5f6f6a;--main:#0f766e;--warn:#b45309;--warnbg:#fef3c7;--danger:#b91c1c;--dangerbg:#fee2e2;--line:#dde4e1}
+@media (prefers-color-scheme:dark){:root{--bg:#10171a;--card:#1a2327;--text:#e6eeeb;--sub:#97a8a2;--main:#2dd4bf;--warn:#fbbf24;--warnbg:#3a2e10;--danger:#fca5a5;--dangerbg:#3a1616;--line:#2b383d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,"Hiragino Sans",sans-serif;padding:max(12px,env(safe-area-inset-top)) 14px max(24px,env(safe-area-inset-bottom))}
+main{max-width:520px;margin:0 auto}
+h1{font-size:20px;margin:8px 0 12px}
+h2{font-size:15px;margin:0 0 8px;color:var(--sub)}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
+.big{font-size:44px;font-weight:700;color:var(--main);line-height:1.1}
+.big small{font-size:16px;font-weight:400;color:var(--sub);margin-left:4px}
+.alert{border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.alert.warn{background:var(--warnbg);color:var(--warn)}
+.alert.danger{background:var(--dangerbg);color:var(--danger)}
+label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+input,select,textarea,button{font:inherit;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+button{background:var(--main);color:#fff;border:0;font-weight:600;margin-top:12px}
+button.ghost{background:transparent;color:var(--sub);border:1px solid var(--line)}
+button.del{width:auto;margin:0;padding:4px 10px;background:transparent;color:var(--danger);border:1px solid var(--line);font-size:13px;font-weight:400}
+.row{display:flex;gap:8px}.row>*{flex:1}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--sub);font-weight:500;font-size:12px}
+.li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border:0}.li .s{color:var(--sub);font-size:13px}
+.err{color:var(--danger);font-size:14px;margin-top:8px}
+.note{color:var(--sub);font-size:13px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const $app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ---------- 日付ユーティリティ(ローカル日付の文字列 YYYY-MM-DD で扱う) ----------
+const pad = n => String(n).padStart(2, "0");
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addMonths = (s, n) => {
+  const d = parse(s), day = d.getDate();
+  const r = new Date(d.getFullYear(), d.getMonth()+n, 1);
+  const last = new Date(r.getFullYear(), r.getMonth()+1, 0).getDate();
+  r.setDate(Math.min(day, last));
+  return fmt(r);
+};
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate()+n); return fmt(d); };
+const diffDays = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+const today = () => fmt(new Date());
+const jp = s => { const d = parse(s); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; };
+const num = n => (Math.round(n * 1000) / 1000).toString();
+
+// ---------- 有給の計算 ----------
+const LEGAL = [10, 11, 12, 14, 16, 18, 20]; // 6か月後, 1.5年, 2.5年, ...(以降は20日)
+function buildGrants(hire, upTo) {
+  const list = [];
+  for (let i = 0; i < 60; i++) {
+    const date = addMonths(hire, 6 + 12 * i);
+    if (date > upTo) break;
+    list.push({ date, days: LEGAL[Math.min(i, LEGAL.length - 1)], until: addDays(addMonths(date, 24), -1) });
+  }
+  return list;
+}
+const leaveDays = (l, hpd) => l.type === "full" ? 1 : l.type === "half" ? 0.5 : (Number(l.hours) || 0) / hpd;
+const typeLabel = l => l.type === "full" ? "全休" : l.type === "half" ? "半休" : `時間(${l.hours}h)`;
+
+function compute(settings, leaves) {
+  const t = today();
+  const hpd = Number(settings.hoursPerDay) || 8;
+  const grants = buildGrants(settings.hireDate, t).map(g => ({ ...g, used: 0 }));
+  let shortage = 0;
+  const sorted = [...leaves].sort((a, b) => a.date.localeCompare(b.date));
+  for (const l of sorted) {
+    let need = leaveDays(l, hpd);
+    for (const g of grants) {
+      if (need <= 1e-9) break;
+      if (g.date <= l.date && l.date <= g.until) {
+        const take = Math.min(need, g.days - g.used);
+        if (take > 0) { g.used += take; need -= take; }
+      }
+    }
+    if (need > 1e-9) shortage += need;
+  }
+  const valid = grants.filter(g => g.date <= t && t <= g.until);
+  const balance = valid.reduce((s, g) => s + (g.days - g.used), 0);
+  const nextGrantDate = addMonths(settings.hireDate, 6 + 12 * grants.length);
+  const nextGrantDays = LEGAL[Math.min(grants.length, LEGAL.length - 1)];
+  // 年5日取得義務(10日以上付与された最新の付与日から1年間。時間単位は算入しない)
+  const cur = [...grants].reverse().find(g => g.days >= 10 && g.date <= t);
+  let duty = null;
+  if (cur) {
+    const end = addDays(addMonths(cur.date, 12), -1);
+    const taken = leaves.filter(l => l.type !== "hour" && l.date >= cur.date && l.date <= end)
+      .reduce((s, l) => s + leaveDays(l, hpd), 0);
+    const hourTaken = leaves.filter(l => l.type === "hour" && l.date >= cur.date && l.date <= end)
+      .reduce((s, l) => s + leaveDays(l, hpd), 0);
+    duty = { start: cur.date, end, taken, remain: Math.max(0, 5 - taken), hourTaken };
+  }
+  return { grants, valid, balance, shortage, nextGrantDate, nextGrantDays, duty, t };
+}
+
+// ---------- 状態 ----------
+let auth, db, user = null, unsub = [];
+let settings = null, leaves = [], loading = true, loginError = "";
+
+const getCfg = () => { try { return JSON.parse(localStorage.getItem("fbcfg") || "null"); } catch { return null; } };
+
+function start() {
+  const cfg = getCfg();
+  if (!cfg) return renderConfig();
+  const app = initializeApp(cfg);
+  auth = getAuth(app); db = getFirestore(app);
+  onAuthStateChanged(auth, u => {
+    unsub.forEach(f => f()); unsub = [];
+    user = u; settings = null; leaves = []; loading = !!u;
+    if (!u) return renderLogin();
+    unsub.push(onSnapshot(doc(db, "users", u.uid, "data", "settings"), s => {
+      settings = s.exists() ? s.data() : null; loading = false; renderMain();
+    }, e => { loading = false; renderFatal(e); }));
+    unsub.push(onSnapshot(query(collection(db, "users", u.uid, "leaves"), orderBy("date", "desc")), s => {
+      leaves = s.docs.map(d => ({ id: d.id, ...d.data() })); renderMain();
+    }, e => renderFatal(e)));
+    renderMain();
+  });
+}
+
+// ---------- 画面 ----------
+function renderConfig(msg = "") {
+  $app.innerHTML = `<h1>初期設定</h1><div class="card">
+    <p class="note">Firebaseコンソールの「プロジェクトの設定 → マイアプリ」にある firebaseConfig を、そのまま貼り付けてください。この端末にだけ保存されます。</p>
+    <textarea id="cfg" rows="9" placeholder='apiKey: "...", authDomain: "...", projectId: "...", appId: "..."'></textarea>
+    <button id="ok">保存して開始</button><div class="err">${esc(msg)}</div></div>`;
+  document.getElementById("ok").onclick = () => {
+    const text = document.getElementById("cfg").value, cfg = {};
+    for (const m of text.matchAll(/(\w+)\s*:\s*["']([^"']+)["']/g)) cfg[m[1]] = m[2];
+    if (!cfg.apiKey || !cfg.projectId || !cfg.appId) return renderConfig("apiKey・projectId・appId が読み取れませんでした");
+    localStorage.setItem("fbcfg", JSON.stringify(cfg)); location.reload();
+  };
+}
+
+function renderLogin() {
+  $app.innerHTML = `<h1>有給管理</h1><div class="card">
+    <label>メールアドレス</label><input id="em" type="email" autocomplete="username" inputmode="email">
+    <label>パスワード</label><input id="pw" type="password" autocomplete="current-password">
+    <button id="go">ログイン</button><div class="err">${esc(loginError)}</div></div>
+    <button class="ghost" id="reset">Firebase設定をやり直す</button>`;
+  document.getElementById("go").onclick = async () => {
+    try { loginError = ""; await signInWithEmailAndPassword(auth, document.getElementById("em").value.trim(), document.getElementById("pw").value); }
+    catch (e) { loginError = "ログインに失敗しました(" + (e.code || e.message) + ")"; renderLogin(); }
+  };
+  document.getElementById("reset").onclick = () => { localStorage.removeItem("fbcfg"); location.reload(); };
+}
+
+function renderFatal(e) {
+  $app.innerHTML = `<h1>有給管理</h1><div class="card"><div class="err">データを読み込めませんでした: ${esc(e.code || e.message)}<br>Firestoreのルールで自分のユーザーのデータが許可されているか確認してください。</div></div>
+  <button class="ghost" id="lo">ログアウト</button>`;
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+function renderMain() {
+  if (!user) return;
+  if (loading) { $app.innerHTML = `<p class="note">読み込み中…</p>`; return; }
+  if (!settings || !settings.hireDate) return renderSetup();
+  const c = compute(settings, leaves);
+  const hpd = Number(settings.hoursPerDay) || 8;
+
+  const alerts = [];
+  for (const g of c.valid) {
+    const rem = g.days - g.used, left = diffDays(c.t, g.until);
+    if (rem > 1e-9 && left <= 90)
+      alerts.push([left <= 30 ? "danger" : "warn", `${jp(g.until)} に ${num(rem)}日分が失効します(あと${left}日)`]);
+  }
+  if (c.duty && c.duty.remain > 0) {
+    const left = diffDays(c.t, c.duty.end);
+    alerts.push([left <= 60 ? "danger" : "warn", `年5日の取得義務: あと${num(c.duty.remain)}日(期限 ${jp(c.duty.end)}、あと${left}日)`]);
+  }
+  if (c.shortage > 1e-9) alerts.push(["danger", `付与日数を超えて取得した記録があります(${num(c.shortage)}日分)。入社日や記録を確認してください`]);
+  if (c.duty && c.duty.hourTaken > 5 + 1e-9) alerts.push(["warn", `時間単位の取得が年5日分を超えています(${num(c.duty.hourTaken)}日分)`]);
+
+  $app.innerHTML = `
+  <h1>有給管理</h1>
+  <div class="card"><h2>現在の残日数</h2>
+    <div class="big">${num(c.balance)}<small>日</small></div>
+    <div class="note">${c.grants.length ? "" : "最初の付与はまだです。"}次回付与: ${jp(c.nextGrantDate)} に ${c.nextGrantDays}日</div>
+  </div>
+  ${alerts.map(a => `<div class="alert ${a[0]}">${esc(a[1])}</div>`).join("")}
+  <div class="card"><h2>取得を記録</h2>
+    <label>日付</label><input id="d" type="date" value="${c.t}">
+    <label>種類</label><select id="ty"><option value="full">全休(1日)</option><option value="half">半休(0.5日)</option><option value="hour">時間単位</option></select>
+    <div id="hw" style="display:none"><label>時間数(1日 = ${hpd}時間)</label><input id="h" type="number" min="1" max="${hpd}" step="1" value="1"></div>
+    <label>メモ(任意)</label><input id="m" type="text">
+    <button id="add">記録する</button><div class="err" id="e"></div>
+  </div>
+  <div class="card"><h2>付与と失効</h2>
+    ${c.grants.length ? `<table><tr><th>付与日</th><th>付与</th><th>残</th><th>失効日</th></tr>
+    ${[...c.grants].reverse().map(g => {
+      const expired = g.until < c.t;
+      return `<tr style="${expired ? "opacity:.45" : ""}"><td>${jp(g.date)}</td><td>${g.days}日</td><td>${expired ? "失効" : num(g.days - g.used) + "日"}</td><td>${jp(g.until)}</td></tr>`;
+    }).join("")}</table>` : `<p class="note">付与の記録はありません。</p>`}
+  </div>
+  <div class="card"><h2>取得履歴</h2>
+    ${leaves.length ? leaves.map(l => `<div class="li"><div>${jp(l.date)} ${typeLabel(l)}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}
+  </div>
+  <div class="card"><h2>設定</h2>
+    <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
+    <label>1日の所定労働時間</label><input id="hp" type="number" min="1" max="24" step="0.5" value="${hpd}">
+    <button id="sv">設定を保存</button>
+  </div>
+  <button class="ghost" id="lo">ログアウト</button>`;
+
+  const ty = document.getElementById("ty");
+  ty.onchange = () => document.getElementById("hw").style.display = ty.value === "hour" ? "block" : "none";
+  document.getElementById("add").onclick = async () => {
+    const date = document.getElementById("d").value, type = ty.value, e = document.getElementById("e");
+    if (!date) { e.textContent = "日付を入力してください"; return; }
+    const rec = { date, type, note: document.getElementById("m").value.trim() };
+    if (type === "hour") {
+      const h = Number(document.getElementById("h").value);
+      if (!(h > 0)) { e.textContent = "時間数を入力してください"; return; }
+      rec.hours = h;
+    }
+    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); } catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
+  };
+  document.querySelectorAll(".del").forEach(b => b.onclick = async () => {
+    if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
+  });
+  document.getElementById("sv").onclick = async () => {
+    const hireDate = document.getElementById("hd").value, hoursPerDay = Number(document.getElementById("hp").value) || 8;
+    if (hireDate) await setDoc(doc(db, "users", user.uid, "data", "settings"), { hireDate, hoursPerDay });
+  };
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+function renderSetup() {
+  $app.innerHTML = `<h1>はじめに</h1><div class="card">
+    <p class="note">入社日から法定の付与日数を自動で計算します。</p>
+    <label>入社日</label><input id="hd" type="date">
+    <label>1日の所定労働時間(時間単位の計算用)</label><input id="hp" type="number" min="1" max="24" step="0.5" value="8">
+    <button id="sv">保存</button></div>
+    <button class="ghost" id="lo">ログアウト</button>`;
+  document.getElementById("sv").onclick = async () => {
+    const hireDate = document.getElementById("hd").value;
+    if (hireDate) await setDoc(doc(db, "users", user.uid, "data", "settings"), { hireDate, hoursPerDay: Number(document.getElementById("hp").value) || 8 });
+  };
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+start();
+</script>
+</body>
+</html>
