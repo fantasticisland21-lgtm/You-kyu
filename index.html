@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#0f766e">
 <title>有給管理</title>
 <style>
-:root{--bg:#f4f6f5;--card:#fff;--text:#1c2b27;--sub:#5f6f6a;--main:#0f766e;--warn:#b45309;--warnbg:#fef3c7;--danger:#b91c1c;--dangerbg:#fee2e2;--line:#dde4e1}
-@media (prefers-color-scheme:dark){:root{--bg:#10171a;--card:#1a2327;--text:#e6eeeb;--sub:#97a8a2;--main:#2dd4bf;--warn:#fbbf24;--warnbg:#3a2e10;--danger:#fca5a5;--dangerbg:#3a1616;--line:#2b383d}}
+:root{--bg:#f4f6f5;--card:#fff;--text:#1c2b27;--sub:#5f6f6a;--main:#0f766e;--warn:#b45309;--warnbg:#fef3c7;--danger:#b91c1c;--dangerbg:#fee2e2;--line:#dde4e1;--sat:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#10171a;--card:#1a2327;--text:#e6eeeb;--sub:#97a8a2;--main:#2dd4bf;--warn:#fbbf24;--warnbg:#3a2e10;--danger:#fca5a5;--dangerbg:#3a1616;--line:#2b383d;--sat:#60a5fa}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,"Hiragino Sans",sans-serif;padding:max(12px,env(safe-area-inset-top)) 14px max(24px,env(safe-area-inset-bottom))}
 main{max-width:520px;margin:0 auto}
@@ -27,7 +27,20 @@ input,select,textarea,button{font:inherit;width:100%;padding:10px 12px;border-ra
 button{background:var(--main);color:#fff;border:0;font-weight:600;margin-top:12px}
 button.ghost{background:transparent;color:var(--sub);border:1px solid var(--line)}
 button.del{width:auto;margin:0;padding:4px 10px;background:transparent;color:var(--danger);border:1px solid var(--line);font-size:13px;font-weight:400}
-.row{display:flex;gap:8px}.row>*{flex:1}
+.row{display:flex;gap:8px;margin-top:12px}.row>*{flex:1;min-width:0}.row button{margin-top:0}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mhead .t{font-weight:600}
+.mhead button{width:48px;margin:0;padding:6px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:18px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .dow{font-size:12px;color:var(--sub);padding:2px 0}
+.cal .day{min-height:54px;border-radius:10px;border:1px solid var(--line);padding:5px 0 3px;font-size:15px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.cal .day.empty{border:0;cursor:default}
+.cal .sun{color:var(--danger)}.cal .sat{color:var(--sat)}
+.cal .day.today{border:2px solid var(--main)}
+.cal .day.sel{background:var(--main);color:#fff;border-color:var(--main)}
+.tag{font-size:10px;line-height:1;padding:3px 5px;border-radius:6px;background:var(--main);color:#fff;border:1px solid var(--main)}
+.tag.plan{background:transparent;color:var(--main)}
+.day.sel .tag{background:#fff;color:var(--main);border-color:#fff}
 table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
 th{color:var(--sub);font-weight:500;font-size:12px}
@@ -78,15 +91,13 @@ function buildGrants(hire, upTo) {
 const leaveDays = (l, hpd) => l.type === "full" ? 1 : l.type === "half" ? 0.5 : (Number(l.hours) || 0) / hpd;
 const typeLabel = l => l.type === "full" ? "全休" : l.type === "half" ? "半休" : `時間(${l.hours}h)`;
 
-function compute(settings, leaves) {
-  const t = today();
-  const hpd = Number(settings.hoursPerDay) || 8;
-  const grants = buildGrants(settings.hireDate, t).map(g => ({ ...g, used: 0 }));
+function allocate(grants, leaves, hpd) {
+  const gs = grants.map(g => ({ ...g, used: 0 }));
   let shortage = 0;
   const sorted = [...leaves].sort((a, b) => a.date.localeCompare(b.date));
   for (const l of sorted) {
     let need = leaveDays(l, hpd);
-    for (const g of grants) {
+    for (const g of gs) {
       if (need <= 1e-9) break;
       if (g.date <= l.date && l.date <= g.until) {
         const take = Math.min(need, g.days - g.used);
@@ -95,27 +106,43 @@ function compute(settings, leaves) {
     }
     if (need > 1e-9) shortage += need;
   }
-  const valid = grants.filter(g => g.date <= t && t <= g.until);
-  const balance = valid.reduce((s, g) => s + (g.days - g.used), 0);
-  const nextGrantDate = addMonths(settings.hireDate, 6 + 12 * grants.length);
-  const nextGrantDays = LEGAL[Math.min(grants.length, LEGAL.length - 1)];
-  // 年5日取得義務(10日以上付与された最新の付与日から1年間。時間単位は算入しない)
-  const cur = [...grants].reverse().find(g => g.days >= 10 && g.date <= t);
+  return { gs, shortage };
+}
+
+function compute(settings, leaves) {
+  const t = today();
+  const hpd = Number(settings.hoursPerDay) || 8;
+  const horizon = leaves.reduce((m, l) => (l.date > m ? l.date : m), t);
+  const base = buildGrants(settings.hireDate, horizon);
+  const all = allocate(base, leaves, hpd);                            // 予定も含めた割り当て
+  const past = allocate(base, leaves.filter(l => l.date <= t), hpd);  // 今日までの取得だけ
+  const isNow = g => g.date <= t && t <= g.until;
+  const balance = past.gs.filter(isNow).reduce((s, g) => s + (g.days - g.used), 0);
+  const balanceAfterPlan = all.gs.filter(isNow).reduce((s, g) => s + (g.days - g.used), 0);
+  const planned = leaves.filter(l => l.date > t).reduce((s, l) => s + leaveDays(l, hpd), 0);
+  const grants = all.gs.filter(isNow);   // 付与済みで、まだ失効していないものだけ
+  const given = base.filter(g => g.date <= t).length;
+  const nextGrantDate = addMonths(settings.hireDate, 6 + 12 * given);
+  const nextGrantDays = LEGAL[Math.min(given, LEGAL.length - 1)];
+  // 年5日取得義務(10日以上付与された最新の付与日から1年間。時間単位は算入しない。予定も含める)
+  const cur = [...base].reverse().find(g => g.days >= 10 && g.date <= t);
   let duty = null;
   if (cur) {
     const end = addDays(addMonths(cur.date, 12), -1);
-    const taken = leaves.filter(l => l.type !== "hour" && l.date >= cur.date && l.date <= end)
-      .reduce((s, l) => s + leaveDays(l, hpd), 0);
-    const hourTaken = leaves.filter(l => l.type === "hour" && l.date >= cur.date && l.date <= end)
-      .reduce((s, l) => s + leaveDays(l, hpd), 0);
-    duty = { start: cur.date, end, taken, remain: Math.max(0, 5 - taken), hourTaken };
+    const inPeriod = leaves.filter(l => l.date >= cur.date && l.date <= end);
+    const sum = arr => arr.reduce((s, l) => s + leaveDays(l, hpd), 0);
+    const taken = sum(inPeriod.filter(l => l.type !== "hour"));
+    const plannedIn = sum(inPeriod.filter(l => l.type !== "hour" && l.date > t));
+    const hourTaken = sum(inPeriod.filter(l => l.type === "hour"));
+    duty = { start: cur.date, end, taken, planned: plannedIn, remain: Math.max(0, 5 - taken), hourTaken };
   }
-  return { grants, valid, balance, shortage, nextGrantDate, nextGrantDays, duty, t };
+  return { grants, valid: grants, given, balance, balanceAfterPlan, planned, shortage: all.shortage, nextGrantDate, nextGrantDays, duty, t };
 }
 
 // ---------- 状態 ----------
 let auth, db, user = null, unsub = [];
 let settings = null, leaves = [], loading = true, loginError = "";
+let calMonth = today().slice(0, 7), selDate = today();
 
 // Firebaseの設定(公開されても問題ない接続先情報。データはログインとFirestoreのルールで守られる)
 const EMBEDDED_CFG = {
@@ -178,6 +205,47 @@ function renderFatal(e) {
   document.getElementById("lo").onclick = () => signOut(auth);
 }
 
+const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+const shiftMonth = (ym, n) => {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+};
+
+function calendarHtml(c) {
+  const [y, m] = calMonth.split("-").map(Number);
+  const first = new Date(y, m - 1, 1).getDay();
+  const days = new Date(y, m, 0).getDate();
+  const byDate = {};
+  for (const l of leaves) (byDate[l.date] = byDate[l.date] || []).push(l);
+  let cells = DOW.map((d, i) => `<div class="dow ${i === 0 ? "sun" : i === 6 ? "sat" : ""}">${d}</div>`).join("");
+  for (let i = 0; i < first; i++) cells += `<div class="day empty"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const ds = `${y}-${pad(m)}-${pad(d)}`;
+    const dow = (first + d - 1) % 7;
+    const cls = ["day", dow === 0 ? "sun" : dow === 6 ? "sat" : "", ds === c.t ? "today" : "", ds === selDate ? "sel" : ""].join(" ");
+    const tags = (byDate[ds] || []).map(l => `<span class="tag ${ds > c.t ? "plan" : ""}">${l.type === "full" ? "全" : l.type === "half" ? "半" : esc(l.hours) + "h"}</span>`).join("");
+    cells += `<div class="${cls}" data-date="${ds}"><span>${d}</span>${tags}</div>`;
+  }
+  return `<div class="card"><h2>カレンダー</h2>
+    <div class="mhead"><button id="pm">‹</button><div class="t">${y}年${m}月</div><button id="nm">›</button></div>
+    <div class="cal">${cells}</div>
+    <div class="note" style="margin-top:8px">日付をタップして、下で記録します。枠線だけの印は今日より先の予定です。</div></div>`;
+}
+
+function dayPanelHtml(c, hpd) {
+  if (!selDate) return "";
+  const dl = leaves.filter(l => l.date === selDate);
+  const label = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${selDate > c.t ? " 予定" : ""}`;
+  return `<div class="card"><h2>${label}</h2>
+    ${dl.length ? dl.map(l => `<div class="li"><div>${typeLabel(l)}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">この日の記録はありません。</p>`}
+    <label>メモ(任意)</label><input id="m" type="text">
+    <div class="row"><button data-add="full">全休</button><button data-add="half">半休</button></div>
+    <div class="row"><input id="h" type="number" min="1" max="${hpd}" step="1" value="1" aria-label="時間数"><button data-add="hour">時間単位で記録</button></div>
+    <div class="note" style="margin-top:6px">時間単位は1日 = ${hpd}時間で計算します。</div>
+    <div class="err" id="e"></div></div>`;
+}
+
 function renderMain() {
   if (!user) return;
   if (loading) { $app.innerHTML = `<p class="note">読み込み中…</p>`; return; }
@@ -193,7 +261,7 @@ function renderMain() {
   }
   if (c.duty && c.duty.remain > 0) {
     const left = diffDays(c.t, c.duty.end);
-    alerts.push([left <= 60 ? "danger" : "warn", `年5日の取得義務: あと${num(c.duty.remain)}日(期限 ${jp(c.duty.end)}、あと${left}日)`]);
+    alerts.push([left <= 60 ? "danger" : "warn", `年5日の取得義務: あと${num(c.duty.remain)}日(期限 ${jp(c.duty.end)}、あと${left}日)${c.duty.planned > 1e-9 ? ` ※予定${num(c.duty.planned)}日を含む` : ""}`]);
   }
   if (c.shortage > 1e-9) alerts.push(["danger", `付与日数を超えて取得した記録があります(${num(c.shortage)}日分)。入社日や記録を確認してください`]);
   if (c.duty && c.duty.hourTaken > 5 + 1e-9) alerts.push(["warn", `時間単位の取得が年5日分を超えています(${num(c.duty.hourTaken)}日分)`]);
@@ -202,25 +270,18 @@ function renderMain() {
   <h1>有給管理</h1>
   <div class="card"><h2>現在の残日数</h2>
     <div class="big">${num(c.balance)}<small>日</small></div>
-    <div class="note">${c.grants.length ? "" : "最初の付与はまだです。"}次回付与: ${jp(c.nextGrantDate)} に ${c.nextGrantDays}日</div>
+    ${c.planned > 1e-9 ? `<div class="note">予定 ${num(c.planned)}日 を引くと ${num(c.balanceAfterPlan)}日</div>` : ""}
+    <div class="note">${c.given ? "" : "最初の付与はまだです。"}次回付与: ${jp(c.nextGrantDate)} に ${c.nextGrantDays}日</div>
   </div>
   ${alerts.map(a => `<div class="alert ${a[0]}">${esc(a[1])}</div>`).join("")}
-  <div class="card"><h2>取得を記録</h2>
-    <label>日付</label><input id="d" type="date" value="${c.t}">
-    <label>種類</label><select id="ty"><option value="full">全休(1日)</option><option value="half">半休(0.5日)</option><option value="hour">時間単位</option></select>
-    <div id="hw" style="display:none"><label>時間数(1日 = ${hpd}時間)</label><input id="h" type="number" min="1" max="${hpd}" step="1" value="1"></div>
-    <label>メモ(任意)</label><input id="m" type="text">
-    <button id="add">記録する</button><div class="err" id="e"></div>
-  </div>
+  ${calendarHtml(c)}
+  ${dayPanelHtml(c, hpd)}
   <div class="card"><h2>付与と失効</h2>
     ${c.grants.length ? `<table><tr><th>付与日</th><th>付与</th><th>残</th><th>失効日</th></tr>
-    ${[...c.grants].reverse().map(g => {
-      const expired = g.until < c.t;
-      return `<tr style="${expired ? "opacity:.45" : ""}"><td>${jp(g.date)}</td><td>${g.days}日</td><td>${expired ? "失効" : num(g.days - g.used) + "日"}</td><td>${jp(g.until)}</td></tr>`;
-    }).join("")}</table>` : `<p class="note">付与の記録はありません。</p>`}
+    ${[...c.grants].reverse().map(g => `<tr><td>${jp(g.date)}</td><td>${g.days}日</td><td>${num(g.days - g.used)}日</td><td>${jp(g.until)}</td></tr>`).join("")}</table>` : `<p class="note">有効な付与はありません。</p>`}
   </div>
   <div class="card"><h2>取得履歴</h2>
-    ${leaves.length ? leaves.map(l => `<div class="li"><div>${jp(l.date)} ${typeLabel(l)}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}
+    ${leaves.length ? leaves.map(l => `<div class="li"><div>${jp(l.date)} ${typeLabel(l)}${l.date > c.t ? "(予定)" : ""}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}
   </div>
   <div class="card"><h2>設定</h2>
     <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
@@ -229,19 +290,23 @@ function renderMain() {
   </div>
   <button class="ghost" id="lo">ログアウト</button>`;
 
-  const ty = document.getElementById("ty");
-  ty.onchange = () => document.getElementById("hw").style.display = ty.value === "hour" ? "block" : "none";
-  document.getElementById("add").onclick = async () => {
-    const date = document.getElementById("d").value, type = ty.value, e = document.getElementById("e");
-    if (!date) { e.textContent = "日付を入力してください"; return; }
-    const rec = { date, type, note: document.getElementById("m").value.trim() };
+  document.getElementById("pm").onclick = () => { calMonth = shiftMonth(calMonth, -1); renderMain(); };
+  document.getElementById("nm").onclick = () => { calMonth = shiftMonth(calMonth, 1); renderMain(); };
+  document.querySelectorAll(".day[data-date]").forEach(el => el.onclick = () => { selDate = el.dataset.date; renderMain(); });
+  document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
+    const type = b.dataset.add, e = document.getElementById("e");
+    const rec = { date: selDate, type, note: document.getElementById("m").value.trim() };
+    let amount = type === "full" ? 1 : 0.5;
     if (type === "hour") {
       const h = Number(document.getElementById("h").value);
       if (!(h > 0)) { e.textContent = "時間数を入力してください"; return; }
-      rec.hours = h;
+      rec.hours = h; amount = h / hpd;
     }
-    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); } catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
-  };
+    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + leaveDays(l, hpd), 0);
+    if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
+    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); }
+    catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
+  });
   document.querySelectorAll(".del").forEach(b => b.onclick = async () => {
     if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
   });
