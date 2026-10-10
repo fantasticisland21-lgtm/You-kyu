@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="有給管理">
 <meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>有給管理</title>
 <style>
 :root{
@@ -200,7 +202,7 @@ function allocate(grants, leaves, hpd) {
   const sorted = [...leaves].sort((a, b) => a.date.localeCompare(b.date));
   for (const l of sorted) {
     let need = leaveDays(l, hpd);
-    for (const g of gs) {                // 古い付与分から先に使う
+    for (const g of [...gs].reverse()) { // 新しい付与分から先に使う
       if (need <= 1e-9) break;
       if (g.date <= l.date && l.date <= g.until) {
         const take = Math.min(need, g.days - g.used);
@@ -379,7 +381,7 @@ function grantsHtml(c) {
     </div>`).join("");
   return `<div class="title"><span class="ico">🎫</span>付与と失効</div>
     ${c.grants.length ? rows : `<p class="note">有効な付与はありません。</p>`}
-    <p class="note" style="margin-top:12px">毎年 ${c.nextGrantDays}日 が付与され、付与から2年で失効します。残日数は古い付与分から使います。「残」の数字を書きかえて「更新」を押すと、その付与分の残日数を今の値に合わせて調整できます。</p>`;
+    <p class="note" style="margin-top:12px">毎年 ${c.nextGrantDays}日 が付与され、付与から2年で失効します。残日数は新しい付与分から使います。「残」の数字を書きかえて「更新」を押すと、その付与分の残日数を今の値に合わせて調整できます。</p>`;
 }
 
 function settingsHtml(c, hpd) {
