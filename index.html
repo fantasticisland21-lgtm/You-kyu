@@ -11,14 +11,16 @@
 :root{--bg:#f4f6f5;--card:#fff;--text:#1c2b27;--sub:#5f6f6a;--main:#0f766e;--warn:#b45309;--warnbg:#fef3c7;--danger:#b91c1c;--dangerbg:#fee2e2;--line:#dde4e1;--sat:#2563eb}
 @media (prefers-color-scheme:dark){:root{--bg:#10171a;--card:#1a2327;--text:#e6eeeb;--sub:#97a8a2;--main:#2dd4bf;--warn:#fbbf24;--warnbg:#3a2e10;--danger:#fca5a5;--dangerbg:#3a1616;--line:#2b383d;--sat:#60a5fa}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,"Hiragino Sans",sans-serif;padding:max(12px,env(safe-area-inset-top)) 14px max(24px,env(safe-area-inset-bottom))}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,"Hiragino Sans",sans-serif;padding:max(10px,env(safe-area-inset-top)) 12px calc(80px + env(safe-area-inset-bottom))}
 main{max-width:520px;margin:0 auto}
-h1{font-size:20px;margin:8px 0 12px}
-h2{font-size:15px;margin:0 0 8px;color:var(--sub)}
-.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
-.big{font-size:44px;font-weight:700;color:var(--main);line-height:1.1}
-.big small{font-size:16px;font-weight:400;color:var(--sub);margin-left:4px}
-.alert{border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+h1{font-size:18px;margin:4px 0 10px}
+.card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px;border:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.lab{font-size:13px;color:var(--sub)}
+.big{font-size:40px;font-weight:700;color:var(--main);line-height:1.1}
+.big small{font-size:15px;font-weight:400;color:var(--sub);margin-left:4px}
+.side{text-align:right;font-size:12px;color:var(--sub);line-height:1.5}
+.alert{border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:13px}
 .alert.warn{background:var(--warnbg);color:var(--warn)}
 .alert.danger{background:var(--dangerbg);color:var(--danger)}
 label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
@@ -27,27 +29,45 @@ input,select,textarea,button{font:inherit;width:100%;padding:10px 12px;border-ra
 button{background:var(--main);color:#fff;border:0;font-weight:600;margin-top:12px}
 button.ghost{background:transparent;color:var(--sub);border:1px solid var(--line)}
 button.del{width:auto;margin:0;padding:4px 10px;background:transparent;color:var(--danger);border:1px solid var(--line);font-size:13px;font-weight:400}
-.row{display:flex;gap:8px;margin-top:12px}.row>*{flex:1;min-width:0}.row button{margin-top:0}
-.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.mhead .t{font-weight:600}
-.mhead button{width:48px;margin:0;padding:6px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:18px}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-.cal .dow{font-size:12px;color:var(--sub);padding:2px 0}
-.cal .day{min-height:54px;border-radius:10px;border:1px solid var(--line);padding:5px 0 3px;font-size:15px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.cal .day.empty{border:0;cursor:default}
-.cal .sun{color:var(--danger)}.cal .sat{color:var(--sat)}
-.cal .day.today{border:2px solid var(--main)}
-.cal .day.sel{background:var(--main);color:#fff;border-color:var(--main)}
-.tag{font-size:10px;line-height:1;padding:3px 5px;border-radius:6px;background:var(--main);color:#fff;border:1px solid var(--main)}
-.tag.plan{background:transparent;color:var(--main)}
-.day.sel .tag{background:#fff;color:var(--main);border-color:#fff}
 table{width:100%;border-collapse:collapse;font-size:14px}
-td,th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
+td,th{padding:8px 4px;text-align:left;border-bottom:1px solid var(--line)}
 th{color:var(--sub);font-weight:500;font-size:12px}
 .li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .li:last-child{border:0}.li .s{color:var(--sub);font-size:13px}
-.err{color:var(--danger);font-size:14px;margin-top:8px}
+.err{color:var(--danger);font-size:13px;margin-top:6px}
 .note{color:var(--sub);font-size:13px}
+/* カレンダー */
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mhead .t{font-weight:600}
+.mhead .mr{display:flex;gap:6px}
+.mhead button{width:44px;margin:0;padding:4px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:18px}
+.mhead button.txt{width:auto;padding:4px 10px;font-size:14px;font-weight:400}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.cal .dow{font-size:12px;color:var(--sub);padding:2px 0}
+.cal .day{min-height:46px;border-radius:10px;border:1px solid var(--line);padding:4px 0 2px;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.cal .day.empty{border:0;cursor:default}
+.cal .sun,.cal .hol{color:var(--danger)}.cal .sat{color:var(--sat)}
+.cal .day.today{border:2px solid var(--main)}
+.cal .day.sel{background:var(--main);color:#fff;border-color:var(--main)}
+.tag{font-size:9px;line-height:1;padding:3px 4px;border-radius:6px;background:var(--main);color:#fff;border:1px solid var(--main)}
+.tag.plan{background:transparent;color:var(--main)}
+.day.sel .tag{background:#fff;color:var(--main);border-color:#fff}
+/* 記録パネル */
+.phead{font-weight:600;margin-bottom:6px}
+.phead .hn{color:var(--danger);font-weight:400;font-size:14px;margin-left:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:3px 6px 3px 10px;font-size:13px}
+.chip .x{display:inline-block;padding:0 6px;color:var(--danger);cursor:pointer}
+.grid4{display:grid;grid-template-columns:1fr 1fr .9fr 1fr;gap:8px;margin-top:8px}
+.grid4 button{margin-top:0;padding:10px 4px}
+.grid4 select{padding:10px 4px}
+/* 下のタブ */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:10}
+.tabs-in{max-width:520px;margin:0 auto;display:flex}
+.tab{flex:1;text-align:center;padding:8px 0 6px;font-size:11px;color:var(--sub);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.tab svg{display:block;margin:0 auto 2px}
+.tab.on{color:var(--main);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:20px;font-size:14px;z-index:20}
 </style>
 </head>
 <body>
@@ -56,6 +76,16 @@ th{color:var(--sub);font-weight:500;font-size:12px}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// Firebaseの設定(接続先の情報。公開されても問題なく、データはログインとFirestoreのルールで守られる)
+const FIREBASE_CFG = {
+  apiKey: "AIzaSyCNJjf-TecemMF04jvuvXV3ZfeokluJMBs",
+  authDomain: "kids-job.firebaseapp.com",
+  projectId: "kids-job",
+  storageBucket: "kids-job.firebasestorage.app",
+  messagingSenderId: "341087334902",
+  appId: "1:341087334902:web:a9ed53c6c70f571ea697d7"
+};
 
 const $app = document.getElementById("app");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -76,15 +106,55 @@ const diffDays = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
 const today = () => fmt(new Date());
 const jp = s => { const d = parse(s); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; };
 const num = n => (Math.round(n * 1000) / 1000).toString();
+const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+
+// ---------- 日本の祝日(自動計算) ----------
+const holidayCache = {};
+function holidaysOf(y) {
+  if (holidayCache[y]) return holidayCache[y];
+  const h = {};
+  const add = (m, d, name) => { h[`${y}-${pad(m)}-${pad(d)}`] = name; };
+  const mon = (m, n) => 1 + ((1 - new Date(y, m - 1, 1).getDay() + 7) % 7) + 7 * (n - 1); // 第n月曜日
+  const k = y - 1980, adj = Math.floor(k / 4);
+  add(1, 1, "元日");
+  add(1, mon(1, 2), "成人の日");
+  add(2, 11, "建国記念の日");
+  if (y >= 2020) add(2, 23, "天皇誕生日");
+  add(3, Math.floor(20.8431 + 0.242194 * k - adj), "春分の日");
+  add(4, 29, "昭和の日");
+  add(5, 3, "憲法記念日"); add(5, 4, "みどりの日"); add(5, 5, "こどもの日");
+  if (y === 2020) { add(7, 23, "海の日"); add(7, 24, "スポーツの日"); add(8, 10, "山の日"); }
+  else if (y === 2021) { add(7, 22, "海の日"); add(7, 23, "スポーツの日"); add(8, 8, "山の日"); }
+  else {
+    add(7, mon(7, 3), "海の日");
+    if (y >= 2016) add(8, 11, "山の日");
+    add(10, mon(10, 2), y >= 2022 ? "スポーツの日" : "体育の日");
+  }
+  add(9, mon(9, 3), "敬老の日");
+  add(9, Math.floor(23.2488 + 0.242194 * k - adj), "秋分の日");
+  add(11, 3, "文化の日"); add(11, 23, "勤労感謝の日");
+  if (y <= 2018) add(12, 23, "天皇誕生日");
+  if (y === 2019) { add(5, 1, "天皇の即位の日"); add(10, 22, "即位礼正殿の儀の日"); }
+  // 国民の休日: 前日と翌日が祝日の平日
+  for (let d = `${y}-01-02`; d < `${y}-12-31`; d = addDays(d, 1)) {
+    if (!h[d] && parse(d).getDay() !== 0 && h[addDays(d, -1)] && h[addDays(d, 1)]) h[d] = "国民の休日";
+  }
+  // 振替休日: 日曜が祝日のとき、次の祝日でない日
+  for (const key of Object.keys(h)) {
+    if (parse(key).getDay() === 0) { let d = addDays(key, 1); while (h[d]) d = addDays(d, 1); h[d] = "振替休日"; }
+  }
+  return (holidayCache[y] = h);
+}
+const holidayName = ds => holidaysOf(Number(ds.slice(0, 4)))[ds] || "";
 
 // ---------- 有給の計算 ----------
-const LEGAL = [10, 11, 12, 14, 16, 18, 20]; // 6か月後, 1.5年, 2.5年, ...(以降は20日)
-function buildGrants(hire, upTo) {
+const annualDays = s => Number(s.annualDays) || 30;   // 毎年の付与日数(初期値30日)
+function buildGrants(hire, upTo, days) {
   const list = [];
   for (let i = 0; i < 60; i++) {
-    const date = addMonths(hire, 6 + 12 * i);
+    const date = addMonths(hire, 6 + 12 * i);          // 入社6か月後から、毎年付与
     if (date > upTo) break;
-    list.push({ date, days: LEGAL[Math.min(i, LEGAL.length - 1)], until: addDays(addMonths(date, 24), -1) });
+    list.push({ date, days, until: addDays(addMonths(date, 24), -1) }); // 付与から2年で失効
   }
   return list;
 }
@@ -97,7 +167,7 @@ function allocate(grants, leaves, hpd) {
   const sorted = [...leaves].sort((a, b) => a.date.localeCompare(b.date));
   for (const l of sorted) {
     let need = leaveDays(l, hpd);
-    for (const g of gs) {
+    for (const g of gs) {                // 古い付与分から先に使う
       if (need <= 1e-9) break;
       if (g.date <= l.date && l.date <= g.until) {
         const take = Math.min(need, g.days - g.used);
@@ -112,8 +182,9 @@ function allocate(grants, leaves, hpd) {
 function compute(settings, leaves) {
   const t = today();
   const hpd = Number(settings.hoursPerDay) || 8;
+  const days = annualDays(settings);
   const horizon = leaves.reduce((m, l) => (l.date > m ? l.date : m), t);
-  const base = buildGrants(settings.hireDate, horizon);
+  const base = buildGrants(settings.hireDate, horizon, days);
   const all = allocate(base, leaves, hpd);                            // 予定も含めた割り当て
   const past = allocate(base, leaves.filter(l => l.date <= t), hpd);  // 今日までの取得だけ
   const isNow = g => g.date <= t && t <= g.until;
@@ -123,42 +194,23 @@ function compute(settings, leaves) {
   const grants = all.gs.filter(isNow);   // 付与済みで、まだ失効していないものだけ
   const given = base.filter(g => g.date <= t).length;
   const nextGrantDate = addMonths(settings.hireDate, 6 + 12 * given);
-  const nextGrantDays = LEGAL[Math.min(given, LEGAL.length - 1)];
-  // 年5日取得義務(10日以上付与された最新の付与日から1年間。時間単位は算入しない。予定も含める)
-  const cur = [...base].reverse().find(g => g.days >= 10 && g.date <= t);
-  let duty = null;
-  if (cur) {
-    const end = addDays(addMonths(cur.date, 12), -1);
-    const inPeriod = leaves.filter(l => l.date >= cur.date && l.date <= end);
-    const sum = arr => arr.reduce((s, l) => s + leaveDays(l, hpd), 0);
-    const taken = sum(inPeriod.filter(l => l.type !== "hour"));
-    const plannedIn = sum(inPeriod.filter(l => l.type !== "hour" && l.date > t));
-    const hourTaken = sum(inPeriod.filter(l => l.type === "hour"));
-    duty = { start: cur.date, end, taken, planned: plannedIn, remain: Math.max(0, 5 - taken), hourTaken };
-  }
-  return { grants, valid: grants, given, balance, balanceAfterPlan, planned, shortage: all.shortage, nextGrantDate, nextGrantDays, duty, t };
+  return { grants, given, balance, balanceAfterPlan, planned, shortage: all.shortage, nextGrantDate, nextGrantDays: days, t };
 }
 
 // ---------- 状態 ----------
 let auth, db, user = null, unsub = [];
-let settings = null, leaves = [], loading = true, loginError = "";
+let settings = null, leaves = [], loading = true, loginError = "", tab = "home";
 let calMonth = today().slice(0, 7), selDate = today();
 
-// Firebaseの設定(公開されても問題ない接続先情報。データはログインとFirestoreのルールで守られる)
-const EMBEDDED_CFG = {
-  apiKey: "AIzaSyCNJjf-TecemMF04jvuvXV3ZfeokluJMBs",
-  authDomain: "kids-job.firebaseapp.com",
-  projectId: "kids-job",
-  storageBucket: "kids-job.firebasestorage.app",
-  messagingSenderId: "341087334902",
-  appId: "1:341087334902:web:a9ed53c6c70f571ea697d7"
-};
-const getCfg = () => { try { return EMBEDDED_CFG || JSON.parse(localStorage.getItem("fbcfg") || "null"); } catch { return null; } };
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}
 
 function start() {
-  const cfg = getCfg();
-  if (!cfg) return renderConfig();
-  const app = initializeApp(cfg);
+  const app = initializeApp(FIREBASE_CFG);
   auth = getAuth(app); db = getFirestore(app);
   onAuthStateChanged(auth, u => {
     unsub.forEach(f => f()); unsub = [];
@@ -174,20 +226,7 @@ function start() {
   });
 }
 
-// ---------- 画面 ----------
-function renderConfig(msg = "") {
-  $app.innerHTML = `<h1>初期設定</h1><div class="card">
-    <p class="note">Firebaseコンソールの「プロジェクトの設定 → マイアプリ」にある firebaseConfig を、そのまま貼り付けてください。この端末にだけ保存されます。</p>
-    <textarea id="cfg" rows="9" placeholder='apiKey: "...", authDomain: "...", projectId: "...", appId: "..."'></textarea>
-    <button id="ok">保存して開始</button><div class="err">${esc(msg)}</div></div>`;
-  document.getElementById("ok").onclick = () => {
-    const text = document.getElementById("cfg").value, cfg = {};
-    for (const m of text.matchAll(/(\w+)\s*:\s*["']([^"']+)["']/g)) cfg[m[1]] = m[2];
-    if (!cfg.apiKey || !cfg.projectId || !cfg.appId) return renderConfig("apiKey・projectId・appId が読み取れませんでした");
-    localStorage.setItem("fbcfg", JSON.stringify(cfg)); location.reload();
-  };
-}
-
+// ---------- 画面: ログインなど ----------
 function renderLogin() {
   $app.innerHTML = `<h1>有給管理</h1><div class="card">
     <label>メールアドレス</label><input id="em" type="email" autocomplete="username" inputmode="email">
@@ -205,7 +244,23 @@ function renderFatal(e) {
   document.getElementById("lo").onclick = () => signOut(auth);
 }
 
-const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+function renderSetup() {
+  $app.innerHTML = `<h1>はじめに</h1><div class="card">
+    <p class="note">入社日から、毎年の付与日を自動で計算します。</p>
+    <label>入社日</label><input id="hd" type="date">
+    <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="30">
+    <label>1日の所定労働時間(時間単位の計算用)</label><input id="hp" type="number" min="1" max="24" step="0.5" value="8">
+    <button id="sv">保存</button></div>
+    <button class="ghost" id="lo">ログアウト</button>`;
+  document.getElementById("sv").onclick = async () => {
+    const hireDate = document.getElementById("hd").value;
+    if (hireDate) await setDoc(doc(db, "users", user.uid, "data", "settings"), {
+      hireDate, hoursPerDay: Number(document.getElementById("hp").value) || 8, annualDays: Number(document.getElementById("ad").value) || 30 });
+  };
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+// ---------- 画面: ホーム ----------
 const shiftMonth = (ym, n) => {
   const [y, m] = ym.split("-").map(Number);
   const d = new Date(y, m - 1 + n, 1);
@@ -223,75 +278,95 @@ function calendarHtml(c) {
   for (let d = 1; d <= days; d++) {
     const ds = `${y}-${pad(m)}-${pad(d)}`;
     const dow = (first + d - 1) % 7;
-    const cls = ["day", dow === 0 ? "sun" : dow === 6 ? "sat" : "", ds === c.t ? "today" : "", ds === selDate ? "sel" : ""].join(" ");
+    const cls = ["day", holidayName(ds) ? "hol" : dow === 0 ? "sun" : dow === 6 ? "sat" : "", ds === c.t ? "today" : "", ds === selDate ? "sel" : ""].join(" ");
     const tags = (byDate[ds] || []).map(l => `<span class="tag ${ds > c.t ? "plan" : ""}">${l.type === "full" ? "全" : l.type === "half" ? "半" : esc(l.hours) + "h"}</span>`).join("");
     cells += `<div class="${cls}" data-date="${ds}"><span>${d}</span>${tags}</div>`;
   }
-  return `<div class="card"><h2>カレンダー</h2>
-    <div class="mhead"><button id="pm">‹</button><div class="t">${y}年${m}月</div><button id="nm">›</button></div>
-    <div class="cal">${cells}</div>
-    <div class="note" style="margin-top:8px">日付をタップして、下で記録します。枠線だけの印は今日より先の予定です。</div></div>`;
+  return `<div class="card">
+    <div class="mhead"><button id="pm">‹</button><div class="t">${y}年${m}月</div><div class="mr"><button id="td" class="txt">今日</button><button id="nm">›</button></div></div>
+    <div class="cal">${cells}</div></div>`;
 }
 
 function dayPanelHtml(c, hpd) {
-  if (!selDate) return "";
   const dl = leaves.filter(l => l.date === selDate);
-  const label = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${selDate > c.t ? " 予定" : ""}`;
-  return `<div class="card"><h2>${label}</h2>
-    ${dl.length ? dl.map(l => `<div class="li"><div>${typeLabel(l)}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">この日の記録はありません。</p>`}
-    <label>メモ(任意)</label><input id="m" type="text">
-    <div class="row"><button data-add="full">全休</button><button data-add="half">半休</button></div>
-    <div class="row"><input id="h" type="number" min="1" max="${hpd}" step="1" value="1" aria-label="時間数"><button data-add="hour">時間単位で記録</button></div>
-    <div class="note" style="margin-top:6px">時間単位は1日 = ${hpd}時間で計算します。</div>
+  const hol = holidayName(selDate);
+  const head = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${hol ? `<span class="hn">${esc(hol)}</span>` : ""}${selDate > c.t ? `<span class="hn" style="color:var(--sub)">予定</span>` : ""}`;
+  const chips = dl.map(l => `<span class="chip">${typeLabel(l)}${l.note ? " " + esc(l.note) : ""}<span class="x" data-id="${esc(l.id)}">×</span></span>`).join("");
+  const hopts = Array.from({ length: Math.max(1, Math.floor(hpd)) }, (_, i) => `<option value="${i + 1}">${i + 1}h</option>`).join("");
+  return `<div class="card"><div class="phead">${head}</div>
+    ${chips ? `<div class="chips">${chips}</div>` : ""}
+    <input id="m" type="text" placeholder="メモ(任意)">
+    <div class="grid4"><button data-add="full">全休</button><button data-add="half">半休</button><select id="h" aria-label="時間数">${hopts}</select><button data-add="hour">時間</button></div>
     <div class="err" id="e"></div></div>`;
 }
 
+function homeHtml(c, hpd) {
+  const alerts = [];
+  for (const g of c.grants) {
+    const rem = g.days - g.used, left = diffDays(c.t, g.until);
+    if (rem > 1e-9 && left <= 90)
+      alerts.push([left <= 30 ? "danger" : "warn", `${jp(g.until)} に ${num(rem)}日分が失効します(あと${left}日)`]);
+  }
+  if (c.shortage > 1e-9) alerts.push(["danger", `付与日数を超えて取得した記録があります(${num(c.shortage)}日分)`]);
+  return `<div class="card top">
+      <div><div class="lab">現在の残日数</div><div class="big">${num(c.balance)}<small>日</small></div></div>
+      <div class="side">${c.planned > 1e-9 ? `予定 ${num(c.planned)}日 を引くと ${num(c.balanceAfterPlan)}日<br>` : ""}次回付与 ${jp(c.nextGrantDate)}<br>${c.nextGrantDays}日</div>
+    </div>
+    ${alerts.map(a => `<div class="alert ${a[0]}">${esc(a[1])}</div>`).join("")}
+    ${calendarHtml(c)}
+    ${dayPanelHtml(c, hpd)}`;
+}
+
+// ---------- 画面: 履歴・付与と失効・設定 ----------
+function historyHtml(c) {
+  return `<h1>履歴</h1><div class="card">
+    ${leaves.length ? leaves.map(l => `<div class="li"><div>${jp(l.date)}(${DOW[parse(l.date).getDay()]}) ${typeLabel(l)}${l.date > c.t ? "(予定)" : ""}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}
+  </div>`;
+}
+
+function grantsHtml(c) {
+  return `<h1>付与と失効</h1><div class="card">
+    ${c.grants.length ? `<table><tr><th>付与日</th><th>付与</th><th>残</th><th>失効日</th></tr>
+    ${[...c.grants].reverse().map(g => `<tr><td>${jp(g.date)}</td><td>${g.days}日</td><td>${num(g.days - g.used)}日</td><td>${jp(g.until)}</td></tr>`).join("")}</table>` : `<p class="note">有効な付与はありません。</p>`}
+  </div>
+  <p class="note">毎年 ${c.nextGrantDays}日 が付与され、付与から2年で失効します。残日数は古い付与分から使います。</p>`;
+}
+
+function settingsHtml(c, hpd) {
+  return `<h1>設定</h1><div class="card">
+    <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
+    <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="${annualDays(settings)}">
+    <label>1日の所定労働時間</label><input id="hp" type="number" min="1" max="24" step="0.5" value="${hpd}">
+    <button id="sv">保存</button>
+  </div>
+  <button class="ghost" id="lo">ログアウト</button>`;
+}
+
+// ---------- 下のタブ ----------
+const ICON = (p) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const TABS = [
+  ["home", "ホーム", ICON('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
+  ["history", "履歴", ICON('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>')],
+  ["grants", "付与", ICON('<rect x="4" y="10" width="4" height="10"/><rect x="10" y="4" width="4" height="16"/><rect x="16" y="13" width="4" height="7"/>')],
+  ["settings", "設定", ICON('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>')]
+];
+const tabsHtml = () => `<nav class="tabs"><div class="tabs-in">${TABS.map(([id, label, icon]) => `<div class="tab ${tab === id ? "on" : ""}" data-tab="${id}">${icon}${label}</div>`).join("")}</div></nav>`;
+
+// ---------- 全体の描画と操作 ----------
 function renderMain() {
   if (!user) return;
   if (loading) { $app.innerHTML = `<p class="note">読み込み中…</p>`; return; }
   if (!settings || !settings.hireDate) return renderSetup();
   const c = compute(settings, leaves);
   const hpd = Number(settings.hoursPerDay) || 8;
+  const body = tab === "history" ? historyHtml(c) : tab === "grants" ? grantsHtml(c) : tab === "settings" ? settingsHtml(c, hpd) : homeHtml(c, hpd);
+  $app.innerHTML = body + tabsHtml();
 
-  const alerts = [];
-  for (const g of c.valid) {
-    const rem = g.days - g.used, left = diffDays(c.t, g.until);
-    if (rem > 1e-9 && left <= 90)
-      alerts.push([left <= 30 ? "danger" : "warn", `${jp(g.until)} に ${num(rem)}日分が失効します(あと${left}日)`]);
-  }
-  if (c.duty && c.duty.remain > 0) {
-    const left = diffDays(c.t, c.duty.end);
-    alerts.push([left <= 60 ? "danger" : "warn", `年5日の取得義務: あと${num(c.duty.remain)}日(期限 ${jp(c.duty.end)}、あと${left}日)${c.duty.planned > 1e-9 ? ` ※予定${num(c.duty.planned)}日を含む` : ""}`]);
-  }
-  if (c.shortage > 1e-9) alerts.push(["danger", `付与日数を超えて取得した記録があります(${num(c.shortage)}日分)。入社日や記録を確認してください`]);
-  if (c.duty && c.duty.hourTaken > 5 + 1e-9) alerts.push(["warn", `時間単位の取得が年5日分を超えています(${num(c.duty.hourTaken)}日分)`]);
-
-  $app.innerHTML = `
-  <h1>有給管理</h1>
-  <div class="card"><h2>現在の残日数</h2>
-    <div class="big">${num(c.balance)}<small>日</small></div>
-    ${c.planned > 1e-9 ? `<div class="note">予定 ${num(c.planned)}日 を引くと ${num(c.balanceAfterPlan)}日</div>` : ""}
-    <div class="note">${c.given ? "" : "最初の付与はまだです。"}次回付与: ${jp(c.nextGrantDate)} に ${c.nextGrantDays}日</div>
-  </div>
-  ${alerts.map(a => `<div class="alert ${a[0]}">${esc(a[1])}</div>`).join("")}
-  ${calendarHtml(c)}
-  ${dayPanelHtml(c, hpd)}
-  <div class="card"><h2>付与と失効</h2>
-    ${c.grants.length ? `<table><tr><th>付与日</th><th>付与</th><th>残</th><th>失効日</th></tr>
-    ${[...c.grants].reverse().map(g => `<tr><td>${jp(g.date)}</td><td>${g.days}日</td><td>${num(g.days - g.used)}日</td><td>${jp(g.until)}</td></tr>`).join("")}</table>` : `<p class="note">有効な付与はありません。</p>`}
-  </div>
-  <div class="card"><h2>取得履歴</h2>
-    ${leaves.length ? leaves.map(l => `<div class="li"><div>${jp(l.date)} ${typeLabel(l)}${l.date > c.t ? "(予定)" : ""}<div class="s">${esc(l.note || "")}</div></div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}
-  </div>
-  <div class="card"><h2>設定</h2>
-    <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
-    <label>1日の所定労働時間</label><input id="hp" type="number" min="1" max="24" step="0.5" value="${hpd}">
-    <button id="sv">設定を保存</button>
-  </div>
-  <button class="ghost" id="lo">ログアウト</button>`;
-
-  document.getElementById("pm").onclick = () => { calMonth = shiftMonth(calMonth, -1); renderMain(); };
-  document.getElementById("nm").onclick = () => { calMonth = shiftMonth(calMonth, 1); renderMain(); };
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+  document.querySelectorAll(".tab").forEach(el => el.onclick = () => { tab = el.dataset.tab; renderMain(); window.scrollTo(0, 0); });
+  on("pm", () => { calMonth = shiftMonth(calMonth, -1); renderMain(); });
+  on("nm", () => { calMonth = shiftMonth(calMonth, 1); renderMain(); });
+  on("td", () => { calMonth = today().slice(0, 7); selDate = today(); renderMain(); });
   document.querySelectorAll(".day[data-date]").forEach(el => el.onclick = () => { selDate = el.dataset.date; renderMain(); });
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
     const type = b.dataset.add, e = document.getElementById("e");
@@ -299,36 +374,23 @@ function renderMain() {
     let amount = type === "full" ? 1 : 0.5;
     if (type === "hour") {
       const h = Number(document.getElementById("h").value);
-      if (!(h > 0)) { e.textContent = "時間数を入力してください"; return; }
+      if (!(h > 0)) { e.textContent = "時間数を選んでください"; return; }
       rec.hours = h; amount = h / hpd;
     }
     const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + leaveDays(l, hpd), 0);
     if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
-    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); }
+    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); toast("記録しました"); }
     catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
   });
-  document.querySelectorAll(".del").forEach(b => b.onclick = async () => {
+  document.querySelectorAll(".x, .del").forEach(b => b.onclick = async () => {
     if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
   });
-  document.getElementById("sv").onclick = async () => {
-    const hireDate = document.getElementById("hd").value, hoursPerDay = Number(document.getElementById("hp").value) || 8;
-    if (hireDate) await setDoc(doc(db, "users", user.uid, "data", "settings"), { hireDate, hoursPerDay });
-  };
-  document.getElementById("lo").onclick = () => signOut(auth);
-}
-
-function renderSetup() {
-  $app.innerHTML = `<h1>はじめに</h1><div class="card">
-    <p class="note">入社日から法定の付与日数を自動で計算します。</p>
-    <label>入社日</label><input id="hd" type="date">
-    <label>1日の所定労働時間(時間単位の計算用)</label><input id="hp" type="number" min="1" max="24" step="0.5" value="8">
-    <button id="sv">保存</button></div>
-    <button class="ghost" id="lo">ログアウト</button>`;
-  document.getElementById("sv").onclick = async () => {
+  on("sv", async () => {
     const hireDate = document.getElementById("hd").value;
-    if (hireDate) await setDoc(doc(db, "users", user.uid, "data", "settings"), { hireDate, hoursPerDay: Number(document.getElementById("hp").value) || 8 });
-  };
-  document.getElementById("lo").onclick = () => signOut(auth);
+    const hoursPerDay = Number(document.getElementById("hp").value) || 8, annual = Number(document.getElementById("ad").value) || 30;
+    if (hireDate) { await setDoc(doc(db, "users", user.uid, "data", "settings"), { hireDate, hoursPerDay, annualDays: annual }); toast("保存しました"); }
+  });
+  on("lo", () => signOut(auth));
 }
 
 start();
