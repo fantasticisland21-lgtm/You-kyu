@@ -6,20 +6,20 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="有給管理">
 <meta name="theme-color" content="#ffffff">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=2">
 <title>有給管理</title>
 <style>
 :root{
   --bg:#fff;--text:#37352f;--sub:#787774;--line:rgba(55,53,47,.16);--soft:rgba(55,53,47,.09);--hover:rgba(55,53,47,.06);
-  --callout:#f7f6f3;--blue:#2383e2;--red:#eb5757;--sat:#2383e2;--selbg:rgba(35,131,226,.12);
+  --callout:#f7f6f3;--blue:#2383e2;--red:#eb5757;--sat:#2383e2;--selbg:#fbeeb0;--selline:#e5b400;
   --b-bg:#d3e5ef;--b-tx:#183347;--g-bg:#dbeddb;--g-tx:#1c3829;--o-bg:#fadec9;--o-tx:#49290e;--r-bg:#ffe2dd;--r-tx:#5d1715;--x-bg:#e3e2e0;--x-tx:#32302c;
   --warnbg:#fbf3db;--warn:#402c1b;--dangerbg:#fdebec;--danger:#5d1715;
   --shadow:rgba(15,15,15,.05) 0 0 0 1px,rgba(15,15,15,.1) 0 3px 6px,rgba(15,15,15,.2) 0 9px 24px;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#191919;--text:rgba(255,255,255,.81);--sub:rgba(255,255,255,.46);--line:rgba(255,255,255,.13);--soft:rgba(255,255,255,.09);--hover:rgba(255,255,255,.055);
-  --callout:#252525;--blue:#529cca;--red:#ff7369;--sat:#529cca;--selbg:rgba(82,156,202,.2);
+  --callout:#252525;--blue:#529cca;--red:#ff7369;--sat:#529cca;--selbg:#5c4b1c;--selline:#d9a900;
   --b-bg:#28456c;--b-tx:#d3e5ef;--g-bg:#243d30;--g-tx:#dbeddb;--o-bg:#5c3b23;--o-tx:#fadec9;--r-bg:#5d3b3b;--r-tx:#ffe2dd;--x-bg:#454b4e;--x-tx:#e3e2e0;
   --warnbg:#3f3624;--warn:#f0d9a0;--dangerbg:#46292a;--danger:#f3b8b4;
   --shadow:rgba(0,0,0,.2) 0 0 0 1px,rgba(0,0,0,.3) 0 3px 6px,rgba(0,0,0,.5) 0 9px 24px;
@@ -60,7 +60,10 @@ button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var
 .pill.plan{border:1px dashed currentColor}
 /* 履歴 */
 .li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--soft)}
-.li .d{font-weight:500}.li .s{color:var(--sub);font-size:13px;margin-top:2px}
+.li .d{font-weight:500}.li .s{color:var(--sub);font-size:13px;margin-top:2px;word-break:break-word}
+.li .acts{display:flex;gap:6px;flex-shrink:0}
+button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:13px;font-weight:400}
+.li.ed{display:block}.li.ed input{margin-top:8px}.li.ed .row2{display:flex;gap:8px;margin-top:8px}
 /* 付与 */
 .grow{padding:12px 0;border-bottom:1px solid var(--soft)}
 .grow .gd{font-weight:600}
@@ -83,7 +86,7 @@ button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var
 .cal .n{font-size:12px;align-self:flex-start;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;padding:0 4px}
 .cal .sun .n,.cal .hol .n{color:var(--red)}.cal .sat .n{color:var(--sat)}
 .cal .today .n{background:var(--red);color:#fff}
-.cal .sel{background:var(--selbg)}
+.cal .sel{background:var(--selbg);box-shadow:inset 0 0 0 2px var(--selline)}
 .cal .pill{font-size:10px;padding:1px 3px;overflow:hidden;text-overflow:ellipsis;text-align:center}
 /* 記録パネル */
 .pop{border-radius:6px;box-shadow:var(--shadow);padding:12px;margin-top:12px;background:var(--bg)}
@@ -242,6 +245,7 @@ function compute(settings, leaves) {
 let auth, db, user = null, unsub = [];
 let settings = null, leaves = [], loading = true, loginError = "", tab = "home";
 let calMonth = today().slice(0, 7), selDate = today();
+let editingId = null, editText = "";   // 履歴でメモを編集中の記録
 const settingsRef = () => doc(db, "users", user.uid, "data", "settings");
 
 function toast(msg) {
@@ -366,8 +370,12 @@ function homeHtml(c, hpd) {
 
 // ---------- 画面: 履歴・付与と失効・設定 ----------
 function historyHtml(c) {
+  const head = l => `<div class="d">${jp(l.date)}(${DOW[parse(l.date).getDay()]}) <span class="pill ${l.type}">${typeLabel(l)}</span>${l.date > c.t ? ` <span class="pill gray">予定</span>` : ""}</div>`;
+  const row = l => l.id === editingId
+    ? `<div class="li ed">${head(l)}<input class="nin" type="text" value="${esc(editText)}" placeholder="メモ"><div class="row2"><button class="sm" data-save="${esc(l.id)}">保存</button><button class="sm ghost" data-cancel="1">やめる</button></div></div>`
+    : `<div class="li"><div style="min-width:0">${head(l)}${l.note ? `<div class="s">${esc(l.note)}</div>` : ""}</div><div class="acts"><button class="edit" data-edit="${esc(l.id)}">${l.note ? "編集" : "メモ追加"}</button><button class="del" data-id="${esc(l.id)}">削除</button></div></div>`;
   return `<div class="title"><span class="ico">🗓️</span>履歴</div>
-    ${leaves.length ? leaves.map(l => `<div class="li"><div><div class="d">${jp(l.date)}(${DOW[parse(l.date).getDay()]}) <span class="pill ${l.type}">${typeLabel(l)}</span>${l.date > c.t ? ` <span class="pill gray">予定</span>` : ""}</div>${l.note ? `<div class="s">${esc(l.note)}</div>` : ""}</div><button class="del" data-id="${esc(l.id)}">削除</button></div>`).join("") : `<p class="note">まだ記録がありません。</p>`}`;
+    ${leaves.length ? leaves.map(row).join("") : `<p class="note">まだ記録がありません。</p>`}`;
 }
 
 function grantsHtml(c) {
@@ -412,7 +420,7 @@ function renderMain() {
   $app.innerHTML = body + tabsHtml();
 
   const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
-  document.querySelectorAll(".tab").forEach(el => el.onclick = () => { tab = el.dataset.tab; renderMain(); window.scrollTo(0, 0); });
+  document.querySelectorAll(".tab").forEach(el => el.onclick = () => { tab = el.dataset.tab; editingId = null; renderMain(); window.scrollTo(0, 0); });
   on("pm", () => { calMonth = shiftMonth(calMonth, -1); renderMain(); });
   on("nm", () => { calMonth = shiftMonth(calMonth, 1); renderMain(); });
   on("td", () => { calMonth = today().slice(0, 7); selDate = today(); renderMain(); });
@@ -428,6 +436,19 @@ function renderMain() {
   });
   document.querySelectorAll(".x, .del").forEach(b => b.onclick = async () => {
     if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
+  });
+  // 履歴のメモの編集
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const l = leaves.find(x => x.id === b.dataset.edit);
+    editingId = b.dataset.edit; editText = (l && l.note) || ""; renderMain();
+  });
+  document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = () => { editingId = null; renderMain(); });
+  document.querySelectorAll(".nin").forEach(i => { i.oninput = () => { editText = i.value; }; });
+  document.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
+    try {
+      await setDoc(doc(db, "users", user.uid, "leaves", b.dataset.save), { note: editText.trim() }, { merge: true });
+      editingId = null; renderMain(); toast("メモを保存しました");
+    } catch (er) { toast("保存に失敗しました"); }
   });
   // 付与ごとの残日数の調整(差分を保存する)
   const saveAdjust = async (adj, msg) => {
