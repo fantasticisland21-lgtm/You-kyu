@@ -57,7 +57,7 @@ button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var
 .pill.hour{background:var(--o-bg);color:var(--o-tx)}
 .pill.hol{background:var(--r-bg);color:var(--r-tx)}
 .pill.adj,.pill.gray{background:var(--x-bg);color:var(--x-tx)}
-.pill.plan{background:transparent;border:1px dashed currentColor}
+.pill.plan{border:1px dashed currentColor}
 /* 履歴 */
 .li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--soft)}
 .li .d{font-weight:500}.li .s{color:var(--sub);font-size:13px;margin-top:2px}
@@ -91,10 +91,9 @@ button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .chips .pill{font-size:13px;padding:2px 4px 2px 8px}
 .chips .x{display:inline-block;padding:0 6px;opacity:.6;cursor:pointer}
-.grid4{display:grid;grid-template-columns:1fr 1fr .9fr 1fr;gap:8px;margin-top:8px}
-.grid4 button{margin-top:0;padding:8px 4px;font-weight:600}
-.grid4 select{padding:8px 4px}
-.b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}.b-hour{background:var(--o-bg);color:var(--o-tx)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.grid2 button{margin-top:0;padding:10px 4px;font-weight:600}
+.b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}
 /* 下のタブ */
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--soft);padding-bottom:env(safe-area-inset-bottom);z-index:10}
 .tabs-in{max-width:520px;margin:0 auto;display:flex}
@@ -294,13 +293,12 @@ function renderSetup() {
     <p class="note">ログイン中: ${esc(user.email || "")}<br>いつものアカウントと違うときは、下のボタンでログアウトしてください。</p>
     <label>入社日</label><input id="hd" type="date">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="30">
-    <label>1日の所定労働時間(時間単位の計算用)</label><input id="hp" type="number" min="1" max="24" step="0.5" value="8">
     <button id="sv">保存</button>
     <button class="ghost" id="lo">ログアウト</button>`;
   document.getElementById("sv").onclick = async () => {
     const hireDate = document.getElementById("hd").value;
     if (hireDate) await setDoc(settingsRef(), {
-      hireDate, hoursPerDay: Number(document.getElementById("hp").value) || 8, annualDays: Number(document.getElementById("ad").value) || 30 }, { merge: true });
+      hireDate, annualDays: Number(document.getElementById("ad").value) || 30 }, { merge: true });
   };
   document.getElementById("lo").onclick = () => signOut(auth);
 }
@@ -338,11 +336,10 @@ function dayPanelHtml(c, hpd) {
   const hol = holidayName(selDate);
   const head = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${hol ? `<span class="pill hol">${esc(hol)}</span>` : ""}${selDate > c.t ? `<span class="pill gray">予定</span>` : ""}`;
   const chips = dl.map(l => `<span class="pill ${l.type}">${typeLabel(l)}${l.note ? " " + esc(l.note) : ""}<span class="x" data-id="${esc(l.id)}">×</span></span>`).join("");
-  const hopts = Array.from({ length: Math.max(1, Math.floor(hpd)) }, (_, i) => `<option value="${i + 1}">${i + 1}h</option>`).join("");
   return `<div class="pop"><div class="phead">${head}</div>
     ${chips ? `<div class="chips">${chips}</div>` : ""}
     <input id="m" type="text" placeholder="メモ(任意)">
-    <div class="grid4"><button class="b-full" data-add="full">全休</button><button class="b-half" data-add="half">半休</button><select id="h" aria-label="時間数">${hopts}</select><button class="b-hour" data-add="hour">時間</button></div>
+    <div class="grid2"><button class="b-full" data-add="full">全休</button><button class="b-half" data-add="half">半休</button></div>
     <div class="err" id="e"></div></div>`;
 }
 
@@ -390,7 +387,6 @@ function settingsHtml(c, hpd) {
     <div class="note">ログイン中: ${esc(user.email || "")}</div>
     <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="${annualDays(settings)}">
-    <label>1日の所定労働時間</label><input id="hp" type="number" min="1" max="24" step="0.5" value="${hpd}">
     <button id="sv">保存</button>
     <button class="ghost" id="lo" style="margin-top:24px">ログアウト</button>`;
 }
@@ -424,12 +420,7 @@ function renderMain() {
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
     const type = b.dataset.add, e = document.getElementById("e");
     const rec = { date: selDate, type, note: document.getElementById("m").value.trim() };
-    let amount = type === "full" ? 1 : 0.5;
-    if (type === "hour") {
-      const h = Number(document.getElementById("h").value);
-      if (!(h > 0)) { e.textContent = "時間数を選んでください"; return; }
-      rec.hours = h; amount = h / hpd;
-    }
+    const amount = type === "full" ? 1 : 0.5;
     const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + leaveDays(l, hpd), 0);
     if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
     try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); toast("記録しました"); }
@@ -459,8 +450,8 @@ function renderMain() {
   });
   on("sv", async () => {
     const hireDate = document.getElementById("hd").value;
-    const hoursPerDay = Number(document.getElementById("hp").value) || 8, annual = Number(document.getElementById("ad").value) || 30;
-    if (hireDate) { await setDoc(settingsRef(), { hireDate, hoursPerDay, annualDays: annual }, { merge: true }); toast("保存しました"); }
+    const annual = Number(document.getElementById("ad").value) || 30;
+    if (hireDate) { await setDoc(settingsRef(), { hireDate, annualDays: annual }, { merge: true }); toast("保存しました"); }
   });
   on("lo", () => signOut(auth));
 }
