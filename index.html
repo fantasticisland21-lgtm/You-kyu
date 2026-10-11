@@ -82,6 +82,7 @@ button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:va
 .mhead button{width:36px;margin:0;padding:4px 0;background:transparent;color:var(--text);border:1px solid var(--line);font-size:16px}
 .mhead button.txt{width:auto;padding:4px 10px;font-size:13px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--soft);border-left:1px solid var(--soft)}
+.cal{touch-action:pan-y}
 .cal .dow{font-size:11px;color:var(--sub);text-align:center;padding:4px 0;border-right:1px solid var(--soft);border-bottom:1px solid var(--soft)}
 .cal .dow.sun{color:var(--red)}.cal .dow.sat{color:var(--sat)}
 .cal .day{min-height:46px;padding:2px 2px 3px;border-right:1px solid var(--soft);border-bottom:1px solid var(--soft);display:flex;flex-direction:column;gap:2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;min-width:0}
@@ -383,7 +384,7 @@ function homeHtml(c, hpd) {
 
 // ---------- 画面: 履歴・付与と失効・設定 ----------
 function historyHtml(c) {
-  const hist = leaves.filter(l => !NOUSE.includes(l.type));   // 週休・特休は履歴に出さない
+  const hist = leaves.filter(l => !NOUSE.includes(l.type)).sort((a, b) => b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));   // 週休・特休は履歴に出さない
   const head = l => `<div class="d">${jp(l.date)}(${DOW[parse(l.date).getDay()]}) <span class="pill ${l.type}">${typeLabel(l)}</span>${l.date > c.t ? ` <span class="pill gray">予定</span>` : ""}</div>`;
   const row = l => l.id === editingId
     ? `<div class="li ed">${head(l)}<input class="nin" type="text" value="${esc(editText)}" placeholder="メモ"><div class="row2"><button class="sm" data-save="${esc(l.id)}">保存</button><button class="sm ghost" data-cancel="1">やめる</button></div></div>`
@@ -437,6 +438,17 @@ function renderMain() {
   document.querySelectorAll(".tab").forEach(el => el.onclick = () => { tab = el.dataset.tab; editingId = null; renderMain(); window.scrollTo(0, 0); });
   on("pm", () => { calMonth = shiftMonth(calMonth, -1); renderMain(); });
   on("nm", () => { calMonth = shiftMonth(calMonth, 1); renderMain(); });
+  // カレンダーを横にスワイプして月を移動(左へ=次の月、右へ=前の月)
+  const calEl = document.querySelector(".cal");
+  if (calEl) {
+    let sx = 0, sy = 0;
+    calEl.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    calEl.addEventListener("touchend", e => {
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      calMonth = shiftMonth(calMonth, dx < 0 ? 1 : -1); renderMain();
+    }, { passive: true });
+  }
   on("td", () => { calMonth = today().slice(0, 7); selDate = today(); renderMain(); });
   document.querySelectorAll(".day[data-date]").forEach(el => el.onclick = () => { selDate = el.dataset.date; renderMain(); });
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
