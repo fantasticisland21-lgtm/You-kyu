@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="有給管理">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=8">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=8">
+<title>有給管理</title>
+<style>
+:root{
+  --bg:#fff;--text:#37352f;--sub:#787774;--line:rgba(55,53,47,.16);--soft:rgba(55,53,47,.09);--hover:rgba(55,53,47,.06);
+  --callout:#f7f6f3;--blue:#2383e2;--red:#eb5757;--sat:#2383e2;--selbg:#fcf6dc;--selline:#e6d38c;
+  --b-bg:#d3e5ef;--b-tx:#183347;--g-bg:#dbeddb;--g-tx:#1c3829;--o-bg:#fadec9;--o-tx:#49290e;--r-bg:#ffe2dd;--r-tx:#5d1715;--x-bg:#e3e2e0;--x-tx:#32302c;
+  --warnbg:#fbf3db;--warn:#402c1b;--dangerbg:#fdebec;--danger:#5d1715;
+  --shadow:rgba(15,15,15,.05) 0 0 0 1px,rgba(15,15,15,.1) 0 3px 6px,rgba(15,15,15,.2) 0 9px 24px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#191919;--text:rgba(255,255,255,.81);--sub:rgba(255,255,255,.46);--line:rgba(255,255,255,.13);--soft:rgba(255,255,255,.09);--hover:rgba(255,255,255,.055);
+  --callout:#252525;--blue:#529cca;--red:#ff7369;--sat:#529cca;--selbg:#3a3320;--selline:#6e5f2c;
+  --b-bg:#28456c;--b-tx:#d3e5ef;--g-bg:#243d30;--g-tx:#dbeddb;--o-bg:#5c3b23;--o-tx:#fadec9;--r-bg:#5d3b3b;--r-tx:#ffe2dd;--x-bg:#454b4e;--x-tx:#e3e2e0;
+  --warnbg:#3f3624;--warn:#f0d9a0;--dangerbg:#46292a;--danger:#f3b8b4;
+  --shadow:rgba(0,0,0,.2) 0 0 0 1px,rgba(0,0,0,.3) 0 3px 6px,rgba(0,0,0,.5) 0 9px 24px;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;padding:max(10px,env(safe-area-inset-top)) 16px calc(84px + env(safe-area-inset-bottom));-webkit-text-size-adjust:100%}
+main{max-width:520px;margin:0 auto}
+.title{font-size:26px;font-weight:700;line-height:1.25;margin:10px 0 14px;letter-spacing:-.01em}
+.title .ico{margin-right:6px}
+.sec{margin-bottom:14px}
+.callout{background:var(--callout);border-radius:6px;padding:12px 14px;margin-bottom:10px}
+.cols{display:flex;gap:20px;align-items:flex-end}
+.lab{font-size:12px;color:var(--sub)}
+.big{font-size:38px;font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.mid{font-size:28px;font-weight:600;line-height:1.15;color:var(--text)}
+.big small,.mid small{font-size:14px;font-weight:400;color:var(--sub);margin-left:3px}
+.next{font-size:12px;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px solid var(--soft)}
+.alert{border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:13px}
+.alert.warn{background:var(--warnbg);color:var(--warn)}
+.alert.danger{background:var(--dangerbg);color:var(--danger)}
+label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
+input,select,button{font:inherit;width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(35,131,226,.25)}
+input[type="date"]{display:block;min-width:0;max-width:100%;height:42px;-webkit-appearance:none;appearance:none;text-align:left}
+button{background:var(--blue);color:#fff;border:0;font-weight:500;margin-top:12px;cursor:pointer}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+button.sm{width:auto;margin:0;padding:6px 12px;font-size:14px}
+button.ghost.sm{color:var(--sub)}
+button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var(--red);border:1px solid var(--line);font-size:13px;font-weight:400}
+.err{color:var(--red);font-size:13px;margin-top:6px}
+.note{color:var(--sub);font-size:13px}
+.pill{display:inline-block;font-size:11px;line-height:1.35;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.pill.full{background:var(--b-bg);color:var(--b-tx)}
+.pill.half{background:var(--g-bg);color:var(--g-tx)}
+.pill.hour{background:var(--o-bg);color:var(--o-tx)}
+.pill.hol{background:var(--r-bg);color:var(--r-tx)}
+.pill.adj,.pill.gray{background:var(--x-bg);color:var(--x-tx)}
+.pill.plan{border:1px dashed currentColor}
+/* 履歴 */
+.li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--soft)}
+.li .d{font-weight:500}.li .s{color:var(--sub);font-size:13px;margin-top:2px;word-break:break-word}
+.li .acts{display:flex;gap:6px;flex-shrink:0}
+button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:13px;font-weight:400}
+.li.ed{display:block}.li.ed input{margin-top:8px}.li.ed .row2{display:flex;gap:8px;margin-top:8px}
+/* 付与 */
+.grow{padding:12px 0;border-bottom:1px solid var(--soft)}
+.grow .gd{font-weight:600}
+.grow .gs{color:var(--sub);font-size:13px;margin-top:2px}
+.grow .ed{display:flex;align-items:center;gap:8px;margin-top:10px}
+.grow .ed .k{font-size:13px;color:var(--sub)}
+.grow .ed input{width:104px;text-align:right}
+.grow .ed .u{color:var(--sub)}
+/* カレンダー */
+.mhead{display:flex;align-items:center;justify-content:space-between;margin:2px 0 8px}
+.mhead .t{font-size:18px;font-weight:700}
+.mhead .mr{display:flex;gap:6px}
+.mhead button{width:36px;margin:0;padding:4px 0;background:transparent;color:var(--text);border:1px solid var(--line);font-size:16px}
+.mhead button.txt{width:auto;padding:4px 10px;font-size:13px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--soft);border-left:1px solid var(--soft)}
+.cal .dow{font-size:11px;color:var(--sub);text-align:center;padding:4px 0;border-right:1px solid var(--soft);border-bottom:1px solid var(--soft)}
+.cal .dow.sun{color:var(--red)}.cal .dow.sat{color:var(--sat)}
+.cal .day{min-height:46px;padding:2px 2px 3px;border-right:1px solid var(--soft);border-bottom:1px solid var(--soft);display:flex;flex-direction:column;gap:2px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;min-width:0}
+.cal .day.empty{cursor:default}
+.cal .n{font-size:12px;align-self:flex-start;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:10px;padding:0 4px}
+.cal .sun .n,.cal .hol .n{color:var(--red)}.cal .sat .n{color:var(--sat)}
+.cal .today .n{background:var(--red);color:#fff}
+.cal .sel{background:var(--selbg);box-shadow:inset 0 0 0 1.5px var(--selline)}
+.cal .pill{font-size:10px;padding:1px 3px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+/* 記録パネル */
+.pop{border-radius:6px;box-shadow:var(--shadow);padding:12px;margin-top:12px;background:var(--bg)}
+.phead{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-weight:600;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chips .pill{font-size:13px;padding:2px 4px 2px 8px}
+.chips .x{display:inline-block;padding:0 6px;opacity:.6;cursor:pointer}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.grid2 button{margin-top:0;padding:10px 4px;font-weight:600}
+.b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}
+/* 下のタブ */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--soft);padding-bottom:env(safe-area-inset-bottom);z-index:10}
+.tabs-in{max-width:520px;margin:0 auto;display:flex}
+.tab{flex:1;text-align:center;padding:8px 0 6px;font-size:11px;color:var(--sub);cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.tab svg{display:block;margin:0 auto 2px}
+.tab.on{color:var(--text);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;z-index:20;box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// Firebaseの設定(接続先の情報。公開されても問題なく、データはログインとFirestoreのルールで守られる)
+const FIREBASE_CFG = {
+  apiKey: "AIzaSyCNJjf-TecemMF04jvuvXV3ZfeokluJMBs",
+  authDomain: "kids-job.firebaseapp.com",
+  projectId: "kids-job",
+  storageBucket: "kids-job.firebasestorage.app",
+  messagingSenderId: "341087334902",
+  appId: "1:341087334902:web:a9ed53c6c70f571ea697d7"
+};
+
+const $app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// ---------- 日付ユーティリティ(ローカル日付の文字列 YYYY-MM-DD で扱う) ----------
+const pad = n => String(n).padStart(2, "0");
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addMonths = (s, n) => {
+  const d = parse(s), day = d.getDate();
+  const r = new Date(d.getFullYear(), d.getMonth()+n, 1);
+  const last = new Date(r.getFullYear(), r.getMonth()+1, 0).getDate();
+  r.setDate(Math.min(day, last));
+  return fmt(r);
+};
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate()+n); return fmt(d); };
+const diffDays = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+const today = () => fmt(new Date());
+const jp = s => { const d = parse(s); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; };
+const num = n => (Math.round(n * 1000) / 1000).toString();
+const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+
+// ---------- 日本の祝日(自動計算) ----------
+const holidayCache = {};
+function holidaysOf(y) {
+  if (holidayCache[y]) return holidayCache[y];
+  const h = {};
+  const add = (m, d, name) => { h[`${y}-${pad(m)}-${pad(d)}`] = name; };
+  const mon = (m, n) => 1 + ((1 - new Date(y, m - 1, 1).getDay() + 7) % 7) + 7 * (n - 1); // 第n月曜日
+  const k = y - 1980, adj = Math.floor(k / 4);
+  add(1, 1, "元日");
+  add(1, mon(1, 2), "成人の日");
+  add(2, 11, "建国記念の日");
+  if (y >= 2020) add(2, 23, "天皇誕生日");
+  add(3, Math.floor(20.8431 + 0.242194 * k - adj), "春分の日");
+  add(4, 29, "昭和の日");
+  add(5, 3, "憲法記念日"); add(5, 4, "みどりの日"); add(5, 5, "こどもの日");
+  if (y === 2020) { add(7, 23, "海の日"); add(7, 24, "スポーツの日"); add(8, 10, "山の日"); }
+  else if (y === 2021) { add(7, 22, "海の日"); add(7, 23, "スポーツの日"); add(8, 8, "山の日"); }
+  else {
+    add(7, mon(7, 3), "海の日");
+    if (y >= 2016) add(8, 11, "山の日");
+    add(10, mon(10, 2), y >= 2022 ? "スポーツの日" : "体育の日");
+  }
+  add(9, mon(9, 3), "敬老の日");
+  add(9, Math.floor(23.2488 + 0.242194 * k - adj), "秋分の日");
+  add(11, 3, "文化の日"); add(11, 23, "勤労感謝の日");
+  if (y <= 2018) add(12, 23, "天皇誕生日");
+  if (y === 2019) { add(5, 1, "天皇の即位の日"); add(10, 22, "即位礼正殿の儀の日"); }
+  // 国民の休日: 前日と翌日が祝日の平日
+  for (let d = `${y}-01-02`; d < `${y}-12-31`; d = addDays(d, 1)) {
+    if (!h[d] && parse(d).getDay() !== 0 && h[addDays(d, -1)] && h[addDays(d, 1)]) h[d] = "国民の休日";
+  }
+  // 振替休日: 日曜が祝日のとき、次の祝日でない日
+  for (const key of Object.keys(h)) {
+    if (parse(key).getDay() === 0) { let d = addDays(key, 1); while (h[d]) d = addDays(d, 1); h[d] = "振替休日"; }
+  }
+  return (holidayCache[y] = h);
+}
+const holidayName = ds => holidaysOf(Number(ds.slice(0, 4)))[ds] || "";
+
+// ---------- 有給の計算 ----------
+const annualDays = s => Number(s.annualDays) || 30;   // 毎年の付与日数(初期値30日)
+function buildGrants(hire, upTo, days) {
+  const list = [];
+  for (let i = 0; i < 60; i++) {
+    const date = addMonths(hire, 6 + 12 * i);          // 入社6か月後から、毎年付与
+    if (date > upTo) break;
+    list.push({ date, days, until: addDays(addMonths(date, 24), -1) }); // 付与から2年で失効
+  }
+  return list;
+}
+const leaveDays = (l, hpd) => l.type === "full" ? 1 : l.type === "half" ? 0.5 : (Number(l.hours) || 0) / hpd;
+const typeLabel = l => l.type === "full" ? "全休" : l.type === "half" ? "半休" : `時間 ${l.hours}h`;
+const pillOf = (l, plan) => `<span class="pill ${l.type} ${plan ? "plan" : ""}">${l.type === "hour" ? esc(l.hours) + "h" : typeLabel(l)}</span>`;
+
+function allocate(grants, leaves, hpd) {
+  const gs = grants.map(g => ({ ...g, used: 0 }));
+  let shortage = 0;
+  const sorted = [...leaves].sort((a, b) => a.date.localeCompare(b.date));
+  for (const l of sorted) {
+    let need = leaveDays(l, hpd);
+    for (const g of [...gs].reverse()) { // 新しい付与分から先に使う
+      if (need <= 1e-9) break;
+      if (g.date <= l.date && l.date <= g.until) {
+        const take = Math.min(need, g.days - g.used);
+        if (take > 0) { g.used += take; need -= take; }
+      }
+    }
+    if (need > 1e-9) shortage += need;
+  }
+  return { gs, shortage };
+}
+
+function compute(settings, leaves) {
+  const t = today();
+  const hpd = Number(settings.hoursPerDay) || 8;
+  const days = annualDays(settings);
+  const adj = settings.adjust || {};     // 付与ごとの調整(日数の差分)
+  const horizon = leaves.reduce((m, l) => (l.date > m ? l.date : m), t);
+  const base = buildGrants(settings.hireDate, horizon, days).map(g => {
+    const delta = Number(adj[g.date]) || 0;
+    return { ...g, baseDays: g.days, delta, days: Math.max(0, g.days + delta) };
+  });
+  const all = allocate(base, leaves, hpd);                            // 予定も含めた割り当て
+  const past = allocate(base, leaves.filter(l => l.date <= t), hpd);  // 今日までの取得だけ
+  const pastBy = {};
+  past.gs.forEach(g => { pastBy[g.date] = g; });
+  const isNow = g => g.date <= t && t <= g.until;
+  const balance = past.gs.filter(isNow).reduce((s, g) => s + (g.days - g.used), 0);
+  const balanceAfterPlan = all.gs.filter(isNow).reduce((s, g) => s + (g.days - g.used), 0);
+  const planned = leaves.filter(l => l.date > t).reduce((s, l) => s + leaveDays(l, hpd), 0);
+  const grants = all.gs.filter(isNow).map(g => ({   // 付与済みで、まだ失効していないものだけ
+    ...g, remainNow: pastBy[g.date].days - pastBy[g.date].used, remainAfter: g.days - g.used }));
+  const given = base.filter(g => g.date <= t).length;
+  const nextGrantDate = addMonths(settings.hireDate, 6 + 12 * given);
+  return { grants, given, balance, balanceAfterPlan, planned, shortage: all.shortage, nextGrantDate, nextGrantDays: days, t };
+}
+
+// ---------- 状態 ----------
+let auth, db, user = null, unsub = [];
+let settings = null, leaves = [], loading = true, loginError = "", tab = "home";
+let calMonth = today().slice(0, 7), selDate = today();
+let editingId = null, editText = "";   // 履歴でメモを編集中の記録
+const settingsRef = () => doc(db, "users", user.uid, "data", "settings");
+
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}
+
+function start() {
+  const app = initializeApp(FIREBASE_CFG, "yukyu");
+  auth = getAuth(app); db = getFirestore(app);
+  onAuthStateChanged(auth, u => {
+    unsub.forEach(f => f()); unsub = [];
+    user = u; settings = null; leaves = []; loading = !!u;
+    if (!u) return renderLogin();
+    unsub.push(onSnapshot(doc(db, "users", u.uid, "data", "settings"), s => {
+      settings = s.exists() ? s.data() : null; loading = false; renderMain();
+    }, e => { loading = false; renderFatal(e); }));
+    unsub.push(onSnapshot(query(collection(db, "users", u.uid, "leaves"), orderBy("date", "desc")), s => {
+      leaves = s.docs.map(d => ({ id: d.id, ...d.data() })); renderMain();
+    }, e => renderFatal(e)));
+    renderMain();
+  });
+}
+
+// ---------- 画面: ログインなど ----------
+function renderLogin() {
+  $app.innerHTML = `<div class="title"><span class="ico">🏖️</span>有給管理</div>
+    <label>メールアドレス</label><input id="em" type="email" autocomplete="username" inputmode="email">
+    <label>パスワード</label><input id="pw" type="password" autocomplete="current-password">
+    <button id="go">ログイン</button><div class="err">${esc(loginError)}</div>`;
+  document.getElementById("go").onclick = async () => {
+    try { loginError = ""; await signInWithEmailAndPassword(auth, document.getElementById("em").value.trim(), document.getElementById("pw").value); }
+    catch (e) { loginError = "ログインに失敗しました(" + (e.code || e.message) + ")"; renderLogin(); }
+  };
+}
+
+function renderFatal(e) {
+  $app.innerHTML = `<div class="title"><span class="ico">🏖️</span>有給管理</div>
+  <div class="alert danger">データを読み込めませんでした: ${esc(e.code || e.message)}<br>Firestoreのルールで自分のユーザーのデータが許可されているか確認してください。</div>
+  <button class="ghost" id="lo">ログアウト</button>`;
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+function renderSetup() {
+  $app.innerHTML = `<div class="title"><span class="ico">👋</span>はじめに</div>
+    <p class="note">入社日から、毎年の付与日を自動で計算します。</p>
+    <p class="note">ログイン中: ${esc(user.email || "")}<br>いつものアカウントと違うときは、下のボタンでログアウトしてください。</p>
+    <label>入社日</label><input id="hd" type="date">
+    <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="30">
+    <button id="sv">保存</button>
+    <button class="ghost" id="lo">ログアウト</button>`;
+  document.getElementById("sv").onclick = async () => {
+    const hireDate = document.getElementById("hd").value;
+    if (hireDate) await setDoc(settingsRef(), {
+      hireDate, annualDays: Number(document.getElementById("ad").value) || 30 }, { merge: true });
+  };
+  document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+// ---------- 画面: ホーム ----------
+const shiftMonth = (ym, n) => {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+};
+
+function calendarHtml(c) {
+  const [y, m] = calMonth.split("-").map(Number);
+  const first = new Date(y, m - 1, 1).getDay();
+  const days = new Date(y, m, 0).getDate();
+  const byDate = {};
+  for (const l of leaves) (byDate[l.date] = byDate[l.date] || []).push(l);
+  let cells = DOW.map((d, i) => `<div class="dow ${i === 0 ? "sun" : i === 6 ? "sat" : ""}">${d}</div>`).join("");
+  for (let i = 0; i < first; i++) cells += `<div class="day empty"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const ds = `${y}-${pad(m)}-${pad(d)}`;
+    const dow = (first + d - 1) % 7;
+    const cls = ["day", holidayName(ds) ? "hol" : dow === 0 ? "sun" : dow === 6 ? "sat" : "", ds === c.t ? "today" : "", ds === selDate ? "sel" : ""].join(" ");
+    cells += `<div class="${cls}" data-date="${ds}"><span class="n">${d}</span>${(byDate[ds] || []).map(l => pillOf(l, ds > c.t)).join("")}</div>`;
+  }
+  const trail = (7 - ((first + days) % 7)) % 7;
+  for (let i = 0; i < trail; i++) cells += `<div class="day empty"></div>`;
+  return `<div class="sec">
+    <div class="mhead"><div class="t">${y}年${m}月</div><div class="mr"><button id="pm">‹</button><button id="td" class="txt">今日</button><button id="nm">›</button></div></div>
+    <div class="cal">${cells}</div></div>`;
+}
+
+function dayPanelHtml(c, hpd) {
+  const dl = leaves.filter(l => l.date === selDate);
+  const hol = holidayName(selDate);
+  const head = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${hol ? `<span class="pill hol">${esc(hol)}</span>` : ""}${selDate > c.t ? `<span class="pill gray">予定</span>` : ""}`;
+  const chips = dl.map(l => `<span class="pill ${l.type}">${typeLabel(l)}${l.note ? " " + esc(l.note) : ""}<span class="x" data-id="${esc(l.id)}">×</span></span>`).join("");
+  return `<div class="pop"><div class="phead">${head}</div>
+    ${chips ? `<div class="chips">${chips}</div>` : ""}
+    <input id="m" type="text" placeholder="メモ(任意)">
+    <div class="grid2"><button class="b-full" data-add="full">全休</button><button class="b-half" data-add="half">半休</button></div>
+    <div class="err" id="e"></div></div>`;
+}
+
+function homeHtml(c, hpd) {
+  const alerts = [];
+  for (const g of c.grants) {
+    const rem = g.remainAfter, left = diffDays(c.t, g.until);
+    if (rem > 1e-9 && left <= 90)
+      alerts.push([left <= 30 ? "danger" : "warn", `${jp(g.until)} に ${num(rem)}日分が失効します(あと${left}日)`]);
+  }
+  if (c.shortage > 1e-9) alerts.push(["danger", `付与日数を超えて取得した記録があります(${num(c.shortage)}日分)`]);
+  const hasPlan = c.planned > 1e-9;
+  return `<div class="callout">
+      <div class="cols">
+        <div><div class="lab">現在の残日数</div><div class="big">${num(c.balance)}<small>日</small></div></div>
+        ${hasPlan ? `<div><div class="lab">予定を引くと</div><div class="mid">${num(c.balanceAfterPlan)}<small>日</small></div></div>` : ""}
+      </div>
+      <div class="next">次回付与 ${jp(c.nextGrantDate)} ・ ${c.nextGrantDays}日${hasPlan ? ` ・ 予定 ${num(c.planned)}日` : ""}</div>
+    </div>
+    ${alerts.map(a => `<div class="alert ${a[0]}">⚠️ ${esc(a[1])}</div>`).join("")}
+    ${calendarHtml(c)}
+    ${dayPanelHtml(c, hpd)}`;
+}
+
+// ---------- 画面: 履歴・付与と失効・設定 ----------
+function historyHtml(c) {
+  const head = l => `<div class="d">${jp(l.date)}(${DOW[parse(l.date).getDay()]}) <span class="pill ${l.type}">${typeLabel(l)}</span>${l.date > c.t ? ` <span class="pill gray">予定</span>` : ""}</div>`;
+  const row = l => l.id === editingId
+    ? `<div class="li ed">${head(l)}<input class="nin" type="text" value="${esc(editText)}" placeholder="メモ"><div class="row2"><button class="sm" data-save="${esc(l.id)}">保存</button><button class="sm ghost" data-cancel="1">やめる</button></div></div>`
+    : `<div class="li"><div style="min-width:0">${head(l)}${l.note ? `<div class="s">${esc(l.note)}</div>` : ""}</div><div class="acts"><button class="edit" data-edit="${esc(l.id)}">${l.note ? "編集" : "メモ追加"}</button><button class="del" data-id="${esc(l.id)}">削除</button></div></div>`;
+  return `<div class="title"><span class="ico">🗓️</span>履歴</div>
+    ${leaves.length ? leaves.map(row).join("") : `<p class="note">まだ記録がありません。</p>`}`;
+}
+
+function grantsHtml(c) {
+  const hasPlan = c.planned > 1e-9;
+  const rows = [...c.grants].reverse().map(g => `<div class="grow">
+      <div class="gd">${jp(g.date)} 付与${g.delta ? ` <span class="pill adj">調整 ${g.delta > 0 ? "+" : ""}${num(g.delta)}日</span>` : ""}</div>
+      <div class="gs">付与 ${num(g.baseDays)}日 ・ 失効 ${jp(g.until)}${hasPlan && Math.abs(g.remainAfter - g.remainNow) > 1e-9 ? ` ・ 予定を引くと ${num(g.remainAfter)}日` : ""}</div>
+      <div class="ed"><span class="k">残</span><input class="rin" type="number" step="any" min="0" inputmode="decimal" data-date="${g.date}" data-now="${g.remainNow}" value="${num(g.remainNow)}"><span class="u">日</span><button class="sm" data-adj="${g.date}">更新</button>${g.delta ? `<button class="sm ghost" data-reset="${g.date}">戻す</button>` : ""}</div>
+    </div>`).join("");
+  return `<div class="title"><span class="ico">🎫</span>付与と失効</div>
+    ${c.grants.length ? rows : `<p class="note">有効な付与はありません。</p>`}
+    <p class="note" style="margin-top:12px">毎年 ${c.nextGrantDays}日 が付与され、付与から2年で失効します。残日数は新しい付与分から使います。「残」の数字を書きかえて「更新」を押すと、その付与分の残日数を今の値に合わせて調整できます。</p>`;
+}
+
+function settingsHtml(c, hpd) {
+  return `<div class="title"><span class="ico">⚙️</span>設定</div>
+    <div class="note">ログイン中: ${esc(user.email || "")}</div>
+    <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
+    <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="${annualDays(settings)}">
+    <button id="sv">保存</button>
+    <button class="ghost" id="lo" style="margin-top:24px">ログアウト</button>`;
+}
+
+// ---------- 下のタブ ----------
+const ICON = (p) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const TABS = [
+  ["home", "ホーム", ICON('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>')],
+  ["history", "履歴", ICON('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>')],
+  ["grants", "付与", ICON('<rect x="4" y="10" width="4" height="10"/><rect x="10" y="4" width="4" height="16"/><rect x="16" y="13" width="4" height="7"/>')],
+  ["settings", "設定", ICON('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>')]
+];
+const tabsHtml = () => `<nav class="tabs"><div class="tabs-in">${TABS.map(([id, label, icon]) => `<div class="tab ${tab === id ? "on" : ""}" data-tab="${id}">${icon}${label}</div>`).join("")}</div></nav>`;
+
+// ---------- 全体の描画と操作 ----------
+function renderMain() {
+  if (!user) return;
+  if (loading) { $app.innerHTML = `<p class="note">読み込み中…</p>`; return; }
+  if (!settings || !settings.hireDate) return renderSetup();
+  const c = compute(settings, leaves);
+  const hpd = Number(settings.hoursPerDay) || 8;
+  const body = tab === "history" ? historyHtml(c) : tab === "grants" ? grantsHtml(c) : tab === "settings" ? settingsHtml(c, hpd) : homeHtml(c, hpd);
+  $app.innerHTML = body + tabsHtml();
+
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+  document.querySelectorAll(".tab").forEach(el => el.onclick = () => { tab = el.dataset.tab; editingId = null; renderMain(); window.scrollTo(0, 0); });
+  on("pm", () => { calMonth = shiftMonth(calMonth, -1); renderMain(); });
+  on("nm", () => { calMonth = shiftMonth(calMonth, 1); renderMain(); });
+  on("td", () => { calMonth = today().slice(0, 7); selDate = today(); renderMain(); });
+  document.querySelectorAll(".day[data-date]").forEach(el => el.onclick = () => { selDate = el.dataset.date; renderMain(); });
+  document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
+    const type = b.dataset.add, e = document.getElementById("e");
+    const rec = { date: selDate, type, note: document.getElementById("m").value.trim() };
+    const amount = type === "full" ? 1 : 0.5;
+    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + leaveDays(l, hpd), 0);
+    if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
+    try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); toast("記録しました"); }
+    catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
+  });
+  document.querySelectorAll(".x, .del").forEach(b => b.onclick = async () => {
+    if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
+  });
+  // 履歴のメモの編集
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const l = leaves.find(x => x.id === b.dataset.edit);
+    editingId = b.dataset.edit; editText = (l && l.note) || ""; renderMain();
+  });
+  document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = () => { editingId = null; renderMain(); });
+  document.querySelectorAll(".nin").forEach(i => { i.oninput = () => { editText = i.value; }; });
+  document.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
+    try {
+      await setDoc(doc(db, "users", user.uid, "leaves", b.dataset.save), { note: editText.trim() }, { merge: true });
+      editingId = null; renderMain(); toast("メモを保存しました");
+    } catch (er) { toast("保存に失敗しました"); }
+  });
+  // 付与ごとの残日数の調整(差分を保存する)
+  const saveAdjust = async (adj, msg) => {
+    try { await setDoc(settingsRef(), { adjust: adj }, { merge: true }); toast(msg); }
+    catch (er) { toast("保存に失敗しました"); }
+  };
+  document.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => {
+    const date = b.dataset.adj;
+    const input = document.querySelector(`.rin[data-date="${date}"]`);
+    const v = Number(input.value);
+    if (input.value === "" || !(v >= 0)) { toast("0以上の数字を入れてください"); return; }
+    const adj = { ...(settings.adjust || {}) };
+    adj[date] = Math.round(((Number(adj[date]) || 0) + (v - Number(input.dataset.now))) * 1000) / 1000;
+    saveAdjust(adj, "更新しました");
+  });
+  document.querySelectorAll("[data-reset]").forEach(b => b.onclick = () => {
+    const adj = { ...(settings.adjust || {}) };
+    adj[b.dataset.reset] = 0;
+    saveAdjust(adj, "調整を戻しました");
+  });
+  on("sv", async () => {
+    const hireDate = document.getElementById("hd").value;
+    const annual = Number(document.getElementById("ad").value) || 30;
+    if (hireDate) { await setDoc(settingsRef(), { hireDate, annualDays: annual }, { merge: true }); toast("保存しました"); }
+  });
+  on("lo", () => signOut(auth));
+}
+
+start();
+</script>
+</body>
+</html>

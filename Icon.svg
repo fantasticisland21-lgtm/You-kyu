@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><filter id="r" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter></defs>
+<rect width="512" height="512" fill="#ffffff"/>
+<g filter="url(#r)" fill="#0b0b0b" stroke="#0b0b0b" stroke-width="4.0" stroke-linejoin="round" font-family="'Noto Sans CJK JP Black','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif" font-size="228.0" font-weight="900"><text x="140" y="225" text-anchor="middle">有</text><text x="372" y="225" text-anchor="middle">給</text><text x="140" y="457" text-anchor="middle">管</text><text x="372" y="457" text-anchor="middle">理</text></g>
+</svg>
