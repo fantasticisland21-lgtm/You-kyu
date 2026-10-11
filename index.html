@@ -13,14 +13,14 @@
 :root{
   --bg:#fff;--text:#37352f;--sub:#787774;--line:rgba(55,53,47,.16);--soft:rgba(55,53,47,.09);--hover:rgba(55,53,47,.06);
   --callout:#f7f6f3;--blue:#2383e2;--red:#eb5757;--sat:#2383e2;--selbg:#fcf6dc;--selline:#e6d38c;
-  --b-bg:#d3e5ef;--b-tx:#183347;--g-bg:#dbeddb;--g-tx:#1c3829;--o-bg:#fadec9;--o-tx:#49290e;--r-bg:#ffe2dd;--r-tx:#5d1715;--x-bg:#e3e2e0;--x-tx:#32302c;
+  --b-bg:#d3e5ef;--b-tx:#183347;--g-bg:#dbeddb;--g-tx:#1c3829;--o-bg:#fadec9;--o-tx:#49290e;--r-bg:#ffe2dd;--r-tx:#5d1715;--x-bg:#e3e2e0;--x-tx:#32302c;--p-bg:#e8deee;--p-tx:#412454;
   --warnbg:#fbf3db;--warn:#402c1b;--dangerbg:#fdebec;--danger:#5d1715;
   --shadow:rgba(15,15,15,.05) 0 0 0 1px,rgba(15,15,15,.1) 0 3px 6px,rgba(15,15,15,.2) 0 9px 24px;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#191919;--text:rgba(255,255,255,.81);--sub:rgba(255,255,255,.46);--line:rgba(255,255,255,.13);--soft:rgba(255,255,255,.09);--hover:rgba(255,255,255,.055);
   --callout:#252525;--blue:#529cca;--red:#ff7369;--sat:#529cca;--selbg:#3a3320;--selline:#6e5f2c;
-  --b-bg:#28456c;--b-tx:#d3e5ef;--g-bg:#243d30;--g-tx:#dbeddb;--o-bg:#5c3b23;--o-tx:#fadec9;--r-bg:#5d3b3b;--r-tx:#ffe2dd;--x-bg:#454b4e;--x-tx:#e3e2e0;
+  --b-bg:#28456c;--b-tx:#d3e5ef;--g-bg:#243d30;--g-tx:#dbeddb;--o-bg:#5c3b23;--o-tx:#fadec9;--r-bg:#5d3b3b;--r-tx:#ffe2dd;--x-bg:#454b4e;--x-tx:#e3e2e0;--p-bg:#49335c;--p-tx:#e8deee;
   --warnbg:#3f3624;--warn:#f0d9a0;--dangerbg:#46292a;--danger:#f3b8b4;
   --shadow:rgba(0,0,0,.2) 0 0 0 1px,rgba(0,0,0,.3) 0 3px 6px,rgba(0,0,0,.5) 0 9px 24px;
 }}
@@ -54,6 +54,9 @@ button.del{width:auto;margin:0;padding:3px 10px;background:transparent;color:var
 .pill{display:inline-block;font-size:11px;line-height:1.35;padding:1px 6px;border-radius:3px;white-space:nowrap}
 .pill.full{background:var(--b-bg);color:var(--b-tx)}
 .pill.half{background:var(--g-bg);color:var(--g-tx)}
+.pill.weekly{background:var(--x-bg);color:var(--x-tx)}
+.pill.special{background:var(--p-bg);color:var(--p-tx)}
+.pill.work{background:transparent;color:var(--sub);box-shadow:inset 0 0 0 1px var(--line)}
 .pill.hour{background:var(--o-bg);color:var(--o-tx)}
 .pill.hol{background:var(--r-bg);color:var(--r-tx)}
 .pill.adj,.pill.gray{background:var(--x-bg);color:var(--x-tx)}
@@ -93,10 +96,11 @@ button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:va
 .phead{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-weight:600;margin-bottom:8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .chips .pill{font-size:13px;padding:2px 4px 2px 8px}
-.chips .x{display:inline-block;padding:0 6px;opacity:.6;cursor:pointer}
+.chips .x,.chips .xo{display:inline-block;padding:0 6px;opacity:.6;cursor:pointer}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .grid2 button{margin-top:0;padding:10px 4px;font-weight:600}
-.b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}
+.b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}.b-weekly{background:var(--x-bg);color:var(--x-tx)}.b-special{background:var(--p-bg);color:var(--p-tx)}
+.sub{font-size:12px;color:var(--sub);margin-top:10px}
 /* 下のタブ */
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--soft);padding-bottom:env(safe-area-inset-bottom);z-index:10}
 .tabs-in{max-width:520px;margin:0 auto;display:flex}
@@ -194,8 +198,14 @@ function buildGrants(hire, upTo, days) {
   }
   return list;
 }
-const leaveDays = (l, hpd) => l.type === "full" ? 1 : l.type === "half" ? 0.5 : (Number(l.hours) || 0) / hpd;
-const typeLabel = l => l.type === "full" ? "全休" : l.type === "half" ? "半休" : `時間 ${l.hours}h`;
+// 有休の残から引く日数(週休・特休は引かない)
+const NOUSE = ["weekly", "special", "work"];   // work=日曜に出勤(自動の週休を外す印)
+const leaveDays = (l, hpd) => l.type === "full" ? 1 : l.type === "half" ? 0.5 : NOUSE.includes(l.type) ? 0 : (Number(l.hours) || 0) / hpd;
+// その日を何日分ふさぐか(週休・特休は1日休み)
+const slotDays = (l, hpd) => l.type === "work" ? 0 : NOUSE.includes(l.type) ? 1 : leaveDays(l, hpd);
+const typeLabel = l => l.type === "full" ? "全休" : l.type === "half" ? "半休" : l.type === "weekly" ? "週休" : l.type === "special" ? "特休" : l.type === "work" ? "出勤" : `時間 ${l.hours}h`;
+// 日曜日は、何も記録しなくても週休として表示する(その日に週休の記録があれば重ねない)
+const autoWeekly = ds => parse(ds).getDay() === 0 && !leaves.some(l => l.date === ds && (l.type === "weekly" || l.type === "work"));
 const pillOf = (l, plan) => `<span class="pill ${l.type} ${plan ? "plan" : ""}">${l.type === "hour" ? esc(l.hours) + "h" : typeLabel(l)}</span>`;
 
 function allocate(grants, leaves, hpd) {
@@ -326,7 +336,7 @@ function calendarHtml(c) {
     const ds = `${y}-${pad(m)}-${pad(d)}`;
     const dow = (first + d - 1) % 7;
     const cls = ["day", holidayName(ds) ? "hol" : dow === 0 ? "sun" : dow === 6 ? "sat" : "", ds === c.t ? "today" : "", ds === selDate ? "sel" : ""].join(" ");
-    cells += `<div class="${cls}" data-date="${ds}"><span class="n">${d}</span>${(byDate[ds] || []).map(l => pillOf(l, ds > c.t)).join("")}</div>`;
+    cells += `<div class="${cls}" data-date="${ds}"><span class="n">${d}</span>${autoWeekly(ds) ? `<span class="pill weekly">週休</span>` : ""}${(byDate[ds] || []).map(l => pillOf(l, ds > c.t)).join("")}</div>`;
   }
   const trail = (7 - ((first + days) % 7)) % 7;
   for (let i = 0; i < trail; i++) cells += `<div class="day empty"></div>`;
@@ -339,11 +349,14 @@ function dayPanelHtml(c, hpd) {
   const dl = leaves.filter(l => l.date === selDate);
   const hol = holidayName(selDate);
   const head = `${jp(selDate)}(${DOW[parse(selDate).getDay()]})${hol ? `<span class="pill hol">${esc(hol)}</span>` : ""}${selDate > c.t ? `<span class="pill gray">予定</span>` : ""}`;
-  const chips = dl.map(l => `<span class="pill ${l.type}">${typeLabel(l)}${l.note ? " " + esc(l.note) : ""}<span class="x" data-id="${esc(l.id)}">×</span></span>`).join("");
+  const autoChip = autoWeekly(selDate) ? `<span class="pill weekly">週休(日曜)<span class="xo" data-off="${selDate}">×</span></span>` : "";
+  const chips = autoChip + dl.map(l => `<span class="pill ${l.type}">${typeLabel(l)}${l.note ? " " + esc(l.note) : ""}<span class="x" data-id="${esc(l.id)}">×</span></span>`).join("");
   return `<div class="pop"><div class="phead">${head}</div>
     ${chips ? `<div class="chips">${chips}</div>` : ""}
     <input id="m" type="text" placeholder="メモ(任意)">
     <div class="grid2"><button class="b-full" data-add="full">全休</button><button class="b-half" data-add="half">半休</button></div>
+    <div class="grid2"><button class="b-weekly" data-add="weekly">週休</button><button class="b-special" data-add="special">特休</button></div>
+    <div class="sub">週休・特休は、有休の残を減らしません</div>
     <div class="err" id="e"></div></div>`;
 }
 
@@ -370,12 +383,13 @@ function homeHtml(c, hpd) {
 
 // ---------- 画面: 履歴・付与と失効・設定 ----------
 function historyHtml(c) {
+  const hist = leaves.filter(l => !NOUSE.includes(l.type));   // 週休・特休は履歴に出さない
   const head = l => `<div class="d">${jp(l.date)}(${DOW[parse(l.date).getDay()]}) <span class="pill ${l.type}">${typeLabel(l)}</span>${l.date > c.t ? ` <span class="pill gray">予定</span>` : ""}</div>`;
   const row = l => l.id === editingId
     ? `<div class="li ed">${head(l)}<input class="nin" type="text" value="${esc(editText)}" placeholder="メモ"><div class="row2"><button class="sm" data-save="${esc(l.id)}">保存</button><button class="sm ghost" data-cancel="1">やめる</button></div></div>`
     : `<div class="li"><div style="min-width:0">${head(l)}${l.note ? `<div class="s">${esc(l.note)}</div>` : ""}</div><div class="acts"><button class="edit" data-edit="${esc(l.id)}">${l.note ? "編集" : "メモ追加"}</button><button class="del" data-id="${esc(l.id)}">削除</button></div></div>`;
   return `<div class="title"><span class="ico">🗓️</span>履歴</div>
-    ${leaves.length ? leaves.map(row).join("") : `<p class="note">まだ記録がありません。</p>`}`;
+    ${hist.length ? hist.map(row).join("") : `<p class="note">まだ記録がありません。</p>`}`;
 }
 
 function grantsHtml(c) {
@@ -428,11 +442,16 @@ function renderMain() {
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = async () => {
     const type = b.dataset.add, e = document.getElementById("e");
     const rec = { date: selDate, type, note: document.getElementById("m").value.trim() };
-    const amount = type === "full" ? 1 : 0.5;
-    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + leaveDays(l, hpd), 0);
+    const amount = type === "half" ? 0.5 : 1;
+    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + slotDays(l, hpd), 0);
     if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
     try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); toast("記録しました"); }
     catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
+  });
+  document.querySelectorAll("[data-off]").forEach(b => b.onclick = async () => {
+    if (!confirm("この日曜を出勤にして、週休を外しますか?")) return;
+    try { await addDoc(collection(db, "users", user.uid, "leaves"), { date: b.dataset.off, type: "work", note: "" }); toast("出勤にしました"); }
+    catch (er) { toast("保存に失敗しました"); }
   });
   document.querySelectorAll(".x, .del").forEach(b => b.onclick = async () => {
     if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
