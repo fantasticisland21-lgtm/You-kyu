@@ -101,6 +101,7 @@ button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:va
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .grid2 button{margin-top:0;padding:10px 4px;font-weight:600}
 .b-full{background:var(--b-bg);color:var(--b-tx)}.b-half{background:var(--g-bg);color:var(--g-tx)}.b-weekly{background:var(--x-bg);color:var(--x-tx)}.b-special{background:var(--p-bg);color:var(--p-tx)}
+.ver{text-align:center;font-size:11px;color:var(--sub);opacity:.7;margin:22px 0 4px}
 .sub{font-size:12px;color:var(--sub);margin-top:10px}
 /* 下のタブ */
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--soft);padding-bottom:env(safe-area-inset-bottom);z-index:10}
@@ -128,6 +129,7 @@ const FIREBASE_CFG = {
   appId: "1:341087334902:web:a9ed53c6c70f571ea697d7"
 };
 
+const APP_VERSION = "1.0";   // 更新するたびに書き換える
 const $app = document.getElementById("app");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -400,7 +402,8 @@ function homeHtml(c, hpd) {
     </div>
     ${alerts.map(a => `<div class="alert ${a[0]}">⚠️ ${esc(a[1])}</div>`).join("")}
     ${calendarHtml(c)}
-    ${dayPanelHtml(c, hpd)}`;
+    ${dayPanelHtml(c, hpd)}
+    <div class="ver">有給管理 ver. ${APP_VERSION}</div>`;
 }
 
 // ---------- 画面: 履歴・付与と失効・設定 ----------
