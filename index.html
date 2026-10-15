@@ -115,7 +115,7 @@ button.edit{width:auto;margin:0;padding:3px 10px;background:transparent;color:va
 <main id="app"></main>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // Firebaseの設定(接続先の情報。公開されても問題なく、データはログインとFirestoreのルールで守られる)
@@ -284,14 +284,35 @@ function start() {
 }
 
 // ---------- 画面: ログインなど ----------
+let loginMode = "login";   // login=ログイン / signup=新規登録
+const authMsg = e => ({
+  "auth/invalid-email": "メールアドレスの形が正しくありません",
+  "auth/missing-password": "パスワードを入力してください",
+  "auth/weak-password": "パスワードは6文字以上にしてください",
+  "auth/email-already-in-use": "このメールアドレスはすでに登録されています。ログインしてください",
+  "auth/operation-not-allowed": "いま新規登録は受け付けていません",
+  "auth/network-request-failed": "通信に失敗しました。電波を確認してください",
+  "auth/invalid-credential": "メールアドレスかパスワードが違います",
+  "auth/too-many-requests": "失敗が続いたため、しばらく待ってからやり直してください"
+}[e.code] || ("失敗しました(" + (e.code || e.message) + ")"));
 function renderLogin() {
+  const su = loginMode === "signup";
   $app.innerHTML = `<div class="title"><span class="ico">🏖️</span>有給管理</div>
     <label>メールアドレス</label><input id="em" type="email" autocomplete="username" inputmode="email">
-    <label>パスワード</label><input id="pw" type="password" autocomplete="current-password">
-    <button id="go">ログイン</button><div class="err">${esc(loginError)}</div>`;
+    <label>パスワード${su ? "(6文字以上)" : ""}</label><input id="pw" type="password" autocomplete="${su ? "new-password" : "current-password"}">
+    ${su ? `<label>パスワード(もう一度)</label><input id="pw2" type="password" autocomplete="new-password">` : ""}
+    <button id="go">${su ? "新規登録" : "ログイン"}</button><div class="err">${esc(loginError)}</div>
+    <button id="sw" class="ghost">${su ? "ログインにもどる" : "はじめての方は、新規登録"}</button>`;
+  document.getElementById("sw").onclick = () => { loginMode = su ? "login" : "signup"; loginError = ""; renderLogin(); };
   document.getElementById("go").onclick = async () => {
-    try { loginError = ""; await signInWithEmailAndPassword(auth, document.getElementById("em").value.trim(), document.getElementById("pw").value); }
-    catch (e) { loginError = "ログインに失敗しました(" + (e.code || e.message) + ")"; renderLogin(); }
+    const em = document.getElementById("em").value.trim(), pw = document.getElementById("pw").value;
+    try {
+      loginError = "";
+      if (su) {
+        if (pw !== document.getElementById("pw2").value) { loginError = "パスワードが一致しません"; return renderLogin(); }
+        await createUserWithEmailAndPassword(auth, em, pw);
+      } else await signInWithEmailAndPassword(auth, em, pw);
+    } catch (e) { loginError = authMsg(e); renderLogin(); }
   };
 }
 
