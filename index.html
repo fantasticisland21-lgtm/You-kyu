@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#ffffff">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=9">
 <link rel="icon" type="image/svg+xml" href="icon.svg?v=9">
+<link rel="manifest" href="manifest.json">
 <title>Day Off</title>
 <style>
 :root{
@@ -129,7 +130,7 @@ const FIREBASE_CFG = {
   appId: "1:341087334902:web:a9ed53c6c70f571ea697d7"
 };
 
-const APP_VERSION = "1.3";   // 更新するたびに書き換える
+const APP_VERSION = "1.4";   // 更新するたびに書き換える
 const $app = document.getElementById("app");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -258,7 +259,8 @@ function compute(settings, leaves) {
 let auth, db, user = null, unsub = [];
 let settings = null, leaves = [], loading = true, loginError = "", tab = "home";
 let calMonth = today().slice(0, 7), selDate = today();
-let editingId = null, editText = "";   // 履歴でメモを編集中の記録
+let editingId = null, editText = "";
+let adding = false;   // 記録ボタンの2回押し防止   // 履歴でメモを編集中の記録
 const settingsRef = () => doc(db, "users", user.uid, "data", "settings");
 
 function toast(msg) {
@@ -304,18 +306,21 @@ function renderLogin() {
     <label>パスワード${su ? "(6文字以上)" : ""}</label><input id="pw" type="password" autocomplete="${su ? "new-password" : "current-password"}">
     ${su ? `<label>パスワード(もう一度)</label><input id="pw2" type="password" autocomplete="new-password">` : ""}
     <button id="go">${su ? "新規登録" : "ログイン"}</button><div class="err">${esc(loginError)}</div>
-    <button id="sw" class="ghost">${su ? "ログインにもどる" : "はじめての方は、新規登録"}</button>`;
+    <button id="sw" class="ghost">${su ? "ログインにもどる" : "はじめての方は、新規登録"}</button>
+    <div class="ver">v${APP_VERSION}</div>`;
   document.getElementById("sw").onclick = () => { loginMode = su ? "login" : "signup"; loginError = ""; renderLogin(); };
   document.getElementById("go").onclick = async () => {
     const em = document.getElementById("em").value.trim(), pw = document.getElementById("pw").value;
     try {
       loginError = "";
       if (su) {
-        if (pw !== document.getElementById("pw2").value) { loginError = "パスワードが一致しません"; return renderLogin(); }
+        if (pw !== document.getElementById("pw2").value) { loginError = "パスワードが一致しません"; renderLogin(); document.getElementById("em").value = em; return; }
         await createUserWithEmailAndPassword(auth, em, pw);
       } else await signInWithEmailAndPassword(auth, em, pw);
-    } catch (e) { loginError = authMsg(e); renderLogin(); }
+    } catch (e) { loginError = authMsg(e); renderLogin(); document.getElementById("em").value = em; }
   };
+  // キーボードの「開く」「改行」でもログインできるようにする
+  $app.querySelectorAll("input").forEach(i => i.onkeydown = e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); document.getElementById("go").click(); } });
 }
 
 function renderFatal(e) {
@@ -331,14 +336,21 @@ function renderSetup() {
     <p class="note">ログイン中: ${esc(user.email || "")}<br>いつものアカウントと違うときは、下のボタンでログアウトしてください。</p>
     <label>入社日</label><input id="hd" type="date">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="30">
-    <button id="sv">保存</button>
+    <button id="sv">保存</button><div class="err" id="se"></div>
     <button class="ghost" id="lo">ログアウト</button>`;
-  document.getElementById("sv").onclick = async () => {
-    const hireDate = document.getElementById("hd").value;
-    if (hireDate) await setDoc(settingsRef(), {
-      hireDate, annualDays: Number(document.getElementById("ad").value) || 30 }, { merge: true });
-  };
+  document.getElementById("sv").onclick = () => saveSettings();
   document.getElementById("lo").onclick = () => signOut(auth);
+}
+
+// 入社日と付与日数の保存(はじめに・設定の両方で使う)
+async function saveSettings() {
+  const e = document.getElementById("se"); e.textContent = "";
+  const hireDate = document.getElementById("hd").value;
+  const annual = Math.round(Number(document.getElementById("ad").value));
+  if (!hireDate) { e.textContent = "入社日を入れてください"; return; }
+  if (!(annual >= 1 && annual <= 60)) { e.textContent = "毎年の付与日数は1〜60の数字にしてください"; return; }
+  try { await setDoc(settingsRef(), { hireDate, annualDays: annual }, { merge: true }); toast("保存しました"); }
+  catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
 }
 
 // ---------- 画面: ホーム ----------
@@ -403,7 +415,7 @@ function homeHtml(c, hpd) {
     ${alerts.map(a => `<div class="alert ${a[0]}">⚠️ ${esc(a[1])}</div>`).join("")}
     ${calendarHtml(c)}
     ${dayPanelHtml(c, hpd)}
-    <div class="ver">ver. ${APP_VERSION}</div>`;
+    <div class="ver">v${APP_VERSION}</div>`;
 }
 
 // ---------- 画面: 履歴・付与と失効・設定 ----------
@@ -434,7 +446,7 @@ function settingsHtml(c, hpd) {
     <div class="note">ログイン中: ${esc(user.email || "")}</div>
     <label>入社日</label><input id="hd" type="date" value="${esc(settings.hireDate)}">
     <label>毎年の付与日数</label><input id="ad" type="number" min="1" max="60" step="1" value="${annualDays(settings)}">
-    <button id="sv">保存</button>
+    <button id="sv">保存</button><div class="err" id="se"></div>
     <button class="ghost" id="lo" style="margin-top:24px">ログアウト</button>`;
 }
 
@@ -479,10 +491,12 @@ function renderMain() {
     const type = b.dataset.add, e = document.getElementById("e");
     const rec = { date: selDate, type, note: document.getElementById("m").value.trim() };
     const amount = type === "half" ? 0.5 : 1;
-    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + slotDays(l, hpd), 0);
-    if (dayTotal + amount > 1 + 1e-9) { e.textContent = "その日の合計が1日を超えてしまいます"; return; }
+    // 日曜の自動の週休も1日分として数える(全休と週休が同じ日に重ならないように)
+    const dayTotal = leaves.filter(l => l.date === selDate).reduce((s, l) => s + slotDays(l, hpd), 0) + (autoWeekly(selDate) && type !== "weekly" ? 1 : 0);
+    if (dayTotal + amount > 1 + 1e-9) { e.textContent = autoWeekly(selDate) ? "日曜は週休になっています。出勤した日なら、週休の × を押してから記録してください" : "その日の合計が1日を超えてしまいます"; return; }
+    if (adding) return; adding = true; setTimeout(() => { adding = false; }, 800);   // 2回押しても1件だけ
     try { await addDoc(collection(db, "users", user.uid, "leaves"), rec); toast("記録しました"); }
-    catch (er) { e.textContent = "保存に失敗しました: " + (er.code || er.message); }
+    catch (er) { const e2 = document.getElementById("e"); if (e2) e2.textContent = "保存に失敗しました: " + (er.code || er.message); }
   });
   document.querySelectorAll("[data-off]").forEach(b => b.onclick = async () => {
     if (!confirm("この日曜を出勤にして、週休を外しますか?")) return;
@@ -490,7 +504,9 @@ function renderMain() {
     catch (er) { toast("保存に失敗しました"); }
   });
   document.querySelectorAll(".x, .del").forEach(b => b.onclick = async () => {
-    if (confirm("この記録を削除しますか?")) await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id));
+    if (!confirm("この記録を削除しますか?")) return;
+    try { await deleteDoc(doc(db, "users", user.uid, "leaves", b.dataset.id)); toast("削除しました"); }
+    catch (er) { toast("削除に失敗しました"); }
   });
   // 履歴のメモの編集
   document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
@@ -524,13 +540,18 @@ function renderMain() {
     adj[b.dataset.reset] = 0;
     saveAdjust(adj, "調整を戻しました");
   });
-  on("sv", async () => {
-    const hireDate = document.getElementById("hd").value;
-    const annual = Number(document.getElementById("ad").value) || 30;
-    if (hireDate) { await setDoc(settingsRef(), { hireDate, annualDays: annual }, { merge: true }); toast("保存しました"); }
-  });
+  on("sv", () => saveSettings());
   on("lo", () => signOut(auth));
 }
+
+// 開いたまま日付が変わっても、アプリに戻ったときに「今日」を出し直す
+let shownDay = today();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !user || today() === shownDay) return;
+  if (selDate === shownDay) selDate = today();
+  if (calMonth === shownDay.slice(0, 7)) calMonth = today().slice(0, 7);
+  shownDay = today(); renderMain();
+});
 
 start();
 </script>
